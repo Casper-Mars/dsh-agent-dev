@@ -236,11 +236,6 @@ const FIRMWARE_SKILLS: readonly FirmwareSkill[] = [
     description: '内容 / 格式 / 逻辑三维质量闸门与证据门槛。',
     markdown: loadFirmwareMarkdown('dev-quality-gate'),
   },
-  {
-    name: 'dev-task-plan',
-    description: '把已确认的 PRD 与技术方案拆成可分配的开发任务、依赖与里程碑。',
-    markdown: loadFirmwareMarkdown('dev-task-plan'),
-  },
 ]
 
 /* ------------------------------------------------------------------ *
