@@ -17,7 +17,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 /** 期望清单：唯一真源，测试直接断言。 */
 export const EXPECTED_SEED_SKILLS = ['dev-decompose', 'dev-worktree-git', 'dev-test-strategy', 'dev-role-developer', 'dev-role-tester', 'dev-retro']
 export const EXPECTED_REFERENCE_STACKS = ['go', 'harmony-arkts', 'node-ts', 'python', 'react']
-export const EXPECTED_FIRMWARE_SKILLS = ['dev-dispatch-contract', 'dev-quality-gate']
+export const EXPECTED_FIRMWARE_SKILLS = ['dev-dispatch-contract', 'dev-quality-gate', 'dev-task-plan']
 export const EXPECTED_CHECK_COUNT = EXPECTED_SEED_SKILLS.length + EXPECTED_REFERENCE_STACKS.length + EXPECTED_FIRMWARE_SKILLS.length
 
 /** dsh 已安装资产相对 home 的固定路径；来源 → CLI / 环境变量名（错误信息用）。 */

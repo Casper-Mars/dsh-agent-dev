@@ -409,11 +409,11 @@ describe('assets.types[].validate 语义校验', () => {
  * ------------------------------------------------------------------ */
 
 describe('固件 Skill', () => {
-  it('恰好 2 个，名称唯一且不占用 core 保留名', () => {
+  it('恰好 3 个，名称唯一且不占用 core 保留名', () => {
     const firmware = devPack.firmwareSkills ?? []
-    expect(firmware).toHaveLength(2)
+    expect(firmware).toHaveLength(3)
     const names = firmware.map((skill) => skill.name)
-    expect(new Set(names).size).toBe(2)
+    expect(new Set(names).size).toBe(3)
     for (const name of names) {
       expect(FIRMWARE_SKILL_NAMES).not.toContain(name)
     }

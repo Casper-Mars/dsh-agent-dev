@@ -8,7 +8,7 @@
  * 两层：
  *   - **纯函数层**：frontmatter 解析、注册参数构造、注册计划查重；
  *   - **集成层**：真实 `SkillRegistry` + `AgentHost` + `apply()`，
- *     验证 2 个固件可见 / 6 个种子仍可见 / 卸载反注册 / skills 缺失降级。
+ *     验证 3 个固件可见 / 6 个种子仍可见 / 卸载反注册 / skills 缺失降级。
  */
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -118,8 +118,8 @@ describe('固件 SKILL 解析', () => {
     )
   })
 
-  it('2 个固件的注册参数：name/description/whenToUse/path/resourceBase/invocation 全部合规', () => {
-    expect(devPack.firmwareSkills).toHaveLength(2)
+  it('3 个固件的注册参数：name/description/whenToUse/path/resourceBase/invocation 全部合规', () => {
+    expect(devPack.firmwareSkills).toHaveLength(3)
 
     for (const skill of devPack.firmwareSkills ?? []) {
       const registration = buildFirmwareSkillRegistration(skill)
@@ -178,7 +178,7 @@ describe('注册计划查重', () => {
     expect(plan.skipped).toEqual([{ name: 'b-skill', reason: 'already-registered' }])
   })
 
-  it('devPack 的 2 个固件全部进入计划，无跳过', () => {
+  it('devPack 的 3 个固件全部进入计划，无跳过', () => {
     const plan = planFirmwareSkillRegistrations(devPack.firmwareSkills)
     expect(plan.registrations.map((item) => item.name)).toEqual(FIRMWARE_NAMES)
     expect(plan.skipped).toEqual([])
@@ -224,14 +224,14 @@ describe('注册失败回滚与幂等查重', () => {
     const ctx = fakeContext(registry)
 
     const first = registerDomainFirmwareSkills(ctx, devPack.firmwareSkills, logger)
-    expect(first).toHaveLength(2)
+    expect(first).toHaveLength(3)
     expect([...live].sort()).toEqual([...FIRMWARE_NAMES].sort())
     expect(warns).toEqual([])
 
     const second = registerDomainFirmwareSkills(ctx, devPack.firmwareSkills, logger)
     expect(second).toHaveLength(0)
     expect(warns).toHaveLength(1)
-    expect(warns[0]).toContain('跳过 2 个固件 Skill')
+    expect(warns[0]).toContain('跳过 3 个固件 Skill')
     expect(warns[0]).toContain('dev-dispatch-contract')
     expect([...live].sort()).toEqual([...FIRMWARE_NAMES].sort())
   })
@@ -254,8 +254,8 @@ describe('注册失败回滚与幂等查重', () => {
     expect(live.size).toBe(0)
 
     const second = registerDomainFirmwareSkills(ctx, devPack.firmwareSkills, logger)
-    expect(second).toHaveLength(2)
-    expect(live.size).toBe(2)
+    expect(second).toHaveLength(3)
+    expect(live.size).toBe(3)
     expect(warns).toEqual([])
   })
 })
@@ -265,7 +265,7 @@ describe('注册失败回滚与幂等查重', () => {
  * ------------------------------------------------------------------ */
 
 describe('真实挂载（SkillRegistry + AgentHost + apply）', () => {
-  it('挂载后 2 个固件 Skill 立即可见，provider 就绪后 6 个种子也在；工具面仍为空', async () => {
+  it('挂载后 3 个固件 Skill 立即可见，provider 就绪后 6 个种子也在；工具面仍为空', async () => {
     isolatedHome('mount')
     const ctx = new Context()
     const registry = new SkillRegistry(ctx)
@@ -299,7 +299,7 @@ describe('真实挂载（SkillRegistry + AgentHost + apply）', () => {
     }
   }, 40_000)
 
-  it('卸载领域后 2 个固件 Skill 被反注册，6 个种子资产仍保留在磁盘', async () => {
+  it('卸载领域后 3 个固件 Skill 被反注册，6 个种子资产仍保留在磁盘', async () => {
     isolatedHome('dispose')
     const ctx = new Context()
     const registry = new SkillRegistry(ctx)
