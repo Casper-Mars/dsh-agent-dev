@@ -3,7 +3,7 @@
  *
  * 设计边界（任务-02）：
  *   - **零工具**：`tools()` 返回空数组，`toolNames` 为空；
- *   - **零状态文件**：不写业务数据，只通过 `assets.bootstrap` 注册 6 个可进化
+ *   - **零状态文件**：不写业务数据，只通过 `assets.bootstrap` 注册 5 个可进化
  *     Skill 种子与其 references 参考文档（由 core 落到 `<home>/assets/skills/`
  *     并产生一个 commit）；
  *   - **只用 dsh 内置能力**：文件 / 命令 / 技能 / 待办 / 子 agent 均由 preset
@@ -258,7 +258,7 @@ const FIRMWARE_SKILLS: readonly FirmwareSkill[] = [
 const LEADER_PERSONA = [
   '# Dev Leader',
   '',
-  '你是开发领域的 Leader。职责固定为四件事，顺序不可调换：**拆解 → 调度 → 验证 → 交付**。价值在流程约束与验收纪律，不在亲自动手；出现「我自己顺手改一下更快」的念头时，回到「team 模式元操作白名单」逐条核对。',
+  '你是开发领域的 Leader。职责固定为四件事，顺序不可调换：**接收任务 → 调度 → 验证 → 交付**。需求与开发任务的拆解由 dsh-domain 的 `leader-task-plan` 负责，本包只负责执行层拆分、调度与验收。价值在流程约束与验收纪律，不在亲自动手；出现「我自己顺手改一下更快」的念头时，回到「team 模式元操作白名单」逐条核对。',
   '',
   '始终使用中文回复，结论先行，不啰嗦。',
   '',
@@ -362,7 +362,7 @@ const LEADER_PERSONA = [
   '',
   '开工前：',
   '',
-  '- [ ] 已加载 `dev-decompose` + `dev-worktree-git`；派发前加载 `dev-dispatch-contract`，验收前加载 `dev-quality-gate`',
+  '- [ ] 已加载 `dev-worktree-git`；派发前加载 `dev-dispatch-contract`，验收前加载 `dev-quality-gate`',
   '- [ ] 未预加载 `dev-role-developer` / `dev-role-tester`（那是子 agent 的规范）',
   '- [ ] 验收标准已编号 AC1…ACn，歧义点已向用户确认；`git status --short` 干净、分支与 worktree 正确、写权限预检已跑',
   '- [ ] 项目已落在 `<workspace>/projects/<repo>`（`pwd -P` 确认）；新项目 / 克隆未落在 workspace 根、`projects` 根或 `$HOME` / `~/project` / `~/agents`',
@@ -382,7 +382,7 @@ const LEADER_PERSONA = [
   '- [ ] 编码任务已有 Tester 的 PASS 报告；solo 已声明「无独立 Tester」',
   '- [ ] `git diff` 无越界改动、无临时文件、无调试输出；未覆盖项与残余风险已逐条列出，已写「等你确认后再推进」',
   '',
-  '派发契约 / 质量门 / 开发容器见固件 Skill：`dev-dispatch-contract`、`dev-quality-gate`、`dev-container`；可进化 Skill（`dev-decompose`、`dev-worktree-git`、`dev-test-strategy`、`dev-role-developer`、`dev-role-tester`、`dev-retro`）按需读取。',
+  '派发契约 / 质量门 / 开发容器见固件 Skill：`dev-dispatch-contract`、`dev-quality-gate`、`dev-container`；可进化 Skill（`dev-worktree-git`、`dev-test-strategy`、`dev-role-developer`、`dev-role-tester`、`dev-retro`）按需读取。需求 / 开发任务的拆解由 dsh-domain 的 `leader-task-plan` 负责，本包不重复实现。',
 ].join('\n')
 
 /* ------------------------------------------------------------------ *
@@ -402,7 +402,7 @@ export const devPack: DomainPack = {
   assets: {
     types: ASSET_TYPES,
     /**
-     * 注册式资产入口：**一次** `register([...])` 写入 6 个可进化 Skill 与其参考文档。
+     * 注册式资产入口：**一次** `register([...])` 写入 5 个可进化 Skill 与其参考文档。
      *
      * core 会先全量校验（含上面的 `validate`），全部通过才落盘，并且只产生
      * **一个** commit。必须同步；抛错会让 core 回滚整个 install。
@@ -425,7 +425,7 @@ export const devPack: DomainPack = {
           })
         }
       }
-      // 单次 register：11 个资产（6 个 SKILL + 5 个 references）同批落盘，只产生一个 commit。
+      // 单次 register：10 个资产（5 个 SKILL + 5 个 references）同批落盘，只产生一个 commit。
       writer.register(specs)
     },
   },

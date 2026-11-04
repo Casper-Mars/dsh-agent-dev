@@ -4,7 +4,7 @@
  * 两层：
  *   - **纯函数层**：字段契约、路径派生、种子与模板一致性、校验反例；
  *   - **集成层**：用 core 的真实 `AgentHost.install` 在临时 home 下落盘 + git 提交，
- *     验证 `agentHost.active.id === 'dev'`、6 个种子一次提交、拆卸后人设回退。
+ *     验证 `agentHost.active.id === 'dev'`、5 个种子一次提交、拆卸后人设回退。
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
@@ -217,9 +217,9 @@ describe('devPack 字段契约', () => {
  * ------------------------------------------------------------------ */
 
 describe('assets.bootstrap 种子注册', () => {
-  it('一次 register 注册 6 个 SKILL 与 5 个 references，路径 / message / 类型全部合规', () => {
+  it('一次 register 注册 5 个 SKILL 与 5 个 references，路径 / message / 类型全部合规', () => {
     const specs = bootstrapSpecs()
-    expect(specs).toHaveLength(11)
+    expect(specs).toHaveLength(10)
     expect(specs.every((spec) => spec.type === 'skill')).toBe(true)
 
     const skillType = assetType('skill')
@@ -229,7 +229,7 @@ describe('assets.bootstrap 种子注册', () => {
     }
 
     const skills = skillSpecs()
-    expect(skills).toHaveLength(6)
+    expect(skills).toHaveLength(5)
     for (const spec of skills) {
       expect(spec.path).toMatch(/^skills\/[a-z0-9-]+\/SKILL\.md$/)
     }
@@ -289,10 +289,6 @@ describe('assets.bootstrap 种子注册', () => {
     expect(worktree).toContain('应当是 `GIT_WRITE_OK`')
     // 旧的 <项目根目录>/../worktrees 约定不得回潮。
     expect(worktree).not.toContain('/../worktrees/')
-
-    const decompose = readTemplate('dev-decompose')
-    expect(decompose).toContain('<workspace>/projects/<repo>')
-    expect(decompose).toContain('原地使用，不迁移、不复制')
   })
 
   it('5 个 references 结构完整：检测 / 环境 / 构建 / 检查 / 测试 / 样例 / 坑 / 判据', () => {
@@ -343,7 +339,7 @@ describe('assets.bootstrap 种子注册', () => {
 
 describe('assets.types[].validate 语义校验', () => {
   const skillType = assetType('skill')
-  const skillPath = `${skillType.prefix}dev-decompose/SKILL.md`
+  const skillPath = `${skillType.prefix}dev-worktree-git/SKILL.md`
 
   it('frontmatter.name 与目录名不一致 → 抛错且消息含两者', () => {
     const content = ['---', 'name: other-skill', 'description: 随便写点什么', '---', ''].join('\n')
@@ -352,7 +348,7 @@ describe('assets.types[].validate 语义校验', () => {
       skillType.validate?.(skillPath, content)
     } catch (error) {
       const message = (error as Error).message
-      expect(message).toContain('dev-decompose')
+      expect(message).toContain('dev-worktree-git')
       expect(message).toContain('other-skill')
     }
   })
@@ -362,7 +358,7 @@ describe('assets.types[].validate 语义校验', () => {
   })
 
   it('description 为空 → 抛错', () => {
-    const content = ['---', 'name: dev-decompose', 'description:   ', '---', ''].join('\n')
+    const content = ['---', 'name: dev-worktree-git', 'description:   ', '---', ''].join('\n')
     expect(() => skillType.validate?.(skillPath, content)).toThrowError(/description/)
   })
 
@@ -435,7 +431,7 @@ describe('固件 Skill', () => {
     expect(markdown).not.toContain('同字段表格')
   })
 
-  it('3 个固件与 6 个种子名称互不重复', () => {
+  it('3 个固件与 5 个种子名称互不重复', () => {
     const firmwareNames = new Set((devPack.firmwareSkills ?? []).map((skill) => skill.name))
     for (const seed of SEED_SKILLS) {
       expect(firmwareNames.has(seed.name)).toBe(false)
@@ -589,7 +585,7 @@ describe('Leader 人设与子 agent 隔离', () => {
  * ------------------------------------------------------------------ */
 
 describe('真实 core 集成：install / 一次提交 / 拆卸', () => {
-  it('install 成功：active.id = dev，6 个种子 + 5 个 references 落盘，一批只产生一个提交', () => {
+  it('install 成功：active.id = dev，5 个种子 + 5 个 references 落盘，一批只产生一个提交', () => {
     const home = tempHome('install')
     const host = new AgentHost(new Context())
     const dispose = host.install(devPack, { home })
@@ -635,7 +631,7 @@ describe('真实 core 集成：install / 一次提交 / 拆卸', () => {
       expect(gitLast(assetsDir, '%an')).toBe(GIT_IDENTITY_NAME)
       const full = gitLast(assetsDir, '%B')
       expect(full).toContain('seed dev skills (domain bootstrap)')
-      // 初始化仓库 1 个 + 本次批量 1 个（11 个资产同批）。
+      // 初始化仓库 1 个 + 本次批量 1 个（10 个资产同批）。
       expect(gitCommitCount(assetsDir)).toBe(2)
     } finally {
       dispose()
@@ -679,7 +675,7 @@ describe('真实 core 集成：install / 一次提交 / 拆卸', () => {
 
     expect(host.active).toBeUndefined()
     expect(personaText()).toBe(loadCorePersonaMarkdown())
-    expect(existsSync(join(assetsDir, 'skills', 'dev-decompose', 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(assetsDir, 'skills', 'dev-worktree-git', 'SKILL.md'))).toBe(true)
 
     await ctx.fiber.dispose()
   }, 20_000)
@@ -695,7 +691,7 @@ describe('真实 core 集成：install / 一次提交 / 拆卸', () => {
           writer.register([
             {
               type: 'skill',
-              path: 'skills/dev-decompose/SKILL.md',
+              path: 'skills/dev-worktree-git/SKILL.md',
               content: '---\nname: wrong-name\ndescription: 坏种子\n---\n',
               message: 'seed dev skills (domain bootstrap)',
             },
