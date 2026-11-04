@@ -4,7 +4,7 @@
  * 背景（任务-02 修复）：core 的 `registerFirmwareSkills()` 只注册 **core 自己**
  * 的 3 个固件 SKILL（`rsi-evolution` / `skill-authorship` / `task-authorship`），
  * `pack.firmwareSkills` 仅用于**重名冲突校验** —— core **不会**注册领域声明的
- * markdown。因此领域侧必须自己把这 2 个固件 SKILL 静态注册进 `ctx.skills`，
+ * markdown。因此领域侧必须自己把这 3 个固件 SKILL 静态注册进 `ctx.skills`，
  * 否则挂载后 `skills.get('dev-dispatch-contract')` 拿不到任何东西。
  *
  * 注：Leader 的行为规则不在固件里，而是并入 `src/pack.ts` 的 `LEADER_PERSONA`

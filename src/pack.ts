@@ -215,15 +215,14 @@ const ASSET_TYPES: readonly AssetType[] = [
  * ------------------------------------------------------------------ */
 
 /**
- * 2 个固件 Skill：name 必须 kebab-case，且不得占用 core 保留名。
+ * 3 个固件 Skill：name 必须 kebab-case，且不得占用 core 保留名。
  *
  * 声明本身仍是契约校验与文档的真源；**运行时注册**由 `src/plugin.ts` 用
  * `ctx.skills.register()` 完成（core 只消费 `firmwareSkills` 做重名校验，
  * 不注册这里的 markdown）。
  *
  * 注意：Leader 的角色规则**不在**固件 Skill 里，而是并入下面的
- * {@link LEADER_PERSONA}（由 core 注入 `rsi-agent:persona`）。固件只剩派发契约
- * 与质量门两份：它们属于「用到才读」的细则，人设才需要常驻。
+ * {@link LEADER_PERSONA}（由 core 注入 `rsi-agent:persona`）。固件保留派发契约、质量门与开发容器三份：它们属于「用到才读」的细则，人设才需要常驻。
  */
 const FIRMWARE_SKILLS: readonly FirmwareSkill[] = [
   {
@@ -235,6 +234,11 @@ const FIRMWARE_SKILLS: readonly FirmwareSkill[] = [
     name: 'dev-quality-gate',
     description: '内容 / 格式 / 逻辑三维质量闸门与证据门槛。',
     markdown: loadFirmwareMarkdown('dev-quality-gate'),
+  },
+  {
+    name: 'dev-container',
+    description: '在项目级开发容器中执行构建、测试与运行，不污染当前精简容器。',
+    markdown: loadFirmwareMarkdown('dev-container'),
   },
 ]
 
@@ -248,7 +252,7 @@ const FIRMWARE_SKILLS: readonly FirmwareSkill[] = [
  * 这里承载 **Leader 的全部行为规则**（模式判定、元操作白名单、交付纪律、
  * Red Lines、检查清单），因为主会话 preset 不再自带 persona —— 人设由领域包
  * 通过 `DomainPack.persona.markdown()` 注入 `rsi-agent:persona`。
- * 派发卡片格式与三维质量门属于「用到才读」的细则，留在 2 个固件 Skill 里。
+ * 派发卡片格式与三维质量门属于「用到才读」的细则，留在 3 个固件 Skill 里。
  * 子 agent 通过 preset 的 `complete: true` 使用各自人设，不继承这里。
  */
 const LEADER_PERSONA = [
@@ -369,7 +373,7 @@ const LEADER_PERSONA = [
   '',
   '- [ ] 10 字段卡片填满，无「待补充」；每条 AC 都能用命令或文件内容判定',
   '- [ ] 项目路径与 worktree 真实存在、分支基于正确基线；约束写明只读目录、禁止 push、禁止改动的模块',
-  '- [ ] 第 8 项写了角色 Skill（Developer：`dev-role-developer` + `dev-test-strategy`；Tester：`dev-role-tester` + `dev-test-strategy`）并要求回报 `STACK=… REF=… DETECT=…`；未写或写「无 Skill」→ **不得派发**',
+  '- [ ] 第 8 项写了角色 Skill（Developer：`dev-role-developer` + `dev-test-strategy` + `dev-container`；Tester：`dev-role-tester` + `dev-test-strategy` + `dev-container`）并要求回报 `STACK=… REF=… DETECT=…`；未写或写「无 Skill」→ **不得派发**',
   '- [ ] 交付格式写明：分支 + commit + 命令退出码 + 未覆盖项；preset 选对（编码 `dev-developer` / 验证 `dev-tester`）',
   '',
   '交付前：',
@@ -378,7 +382,7 @@ const LEADER_PERSONA = [
   '- [ ] 编码任务已有 Tester 的 PASS 报告；solo 已声明「无独立 Tester」',
   '- [ ] `git diff` 无越界改动、无临时文件、无调试输出；未覆盖项与残余风险已逐条列出，已写「等你确认后再推进」',
   '',
-  '派发契约 / 质量门见固件 Skill：`dev-dispatch-contract`、`dev-quality-gate`；可进化 Skill（`dev-decompose`、`dev-worktree-git`、`dev-test-strategy`、`dev-role-developer`、`dev-role-tester`、`dev-retro`）按需读取。',
+  '派发契约 / 质量门 / 开发容器见固件 Skill：`dev-dispatch-contract`、`dev-quality-gate`、`dev-container`；可进化 Skill（`dev-decompose`、`dev-worktree-git`、`dev-test-strategy`、`dev-role-developer`、`dev-role-tester`、`dev-retro`）按需读取。',
 ].join('\n')
 
 /* ------------------------------------------------------------------ *

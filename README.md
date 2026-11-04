@@ -2,8 +2,8 @@
 
 > 在本仓库工作的 agent 请先读 [AGENTS.md](./AGENTS.md)。
 
-开发领域包（dsh）：为 [`dsh-rsi-agent`](../dsh-rsi-agent) 提供 **Dev Leader 人设**、**8 个领域 Skill**
-（2 个固件 + 6 个可进化种子）与 **3 个 agent preset**（Leader / Developer / Tester）。
+开发领域包（dsh）：为 [`dsh-rsi-agent`](../dsh-rsi-agent) 提供 **Dev Leader 人设**、**9 个领域 Skill**
+（3 个固件 + 6 个可进化种子）与 **3 个 agent preset**（Leader / Developer / Tester）。
 
 ## 设计边界
 
@@ -31,7 +31,8 @@
 │  └─ seeds.ts               # 6 个可进化 Skill 的种子正文 + 5 个 references（与 templates 逐字节一致）
 ├─ skills/                   # 固件 Skill（随包发布、只读、不参与进化）
 │  ├─ dev-dispatch-contract/
-│  └─ dev-quality-gate/
+│  ├─ dev-quality-gate/
+│  └─ dev-container/
 ├─ templates/                # 6 个可进化 Skill 的种子模板（种子正文的真源）
 │  ├─ dev-decompose/
 │  ├─ dev-worktree-git/
@@ -42,7 +43,7 @@
 │  └─ dev-retro/
 ├─ scripts/
 │  ├─ copy-assets.mjs        # 把 cordis.patch.yml 等资源复制进 dist-server/
-│  └─ verify-install.mjs     # 13 项安装后自检（CLI + 纯函数）
+│  └─ verify-install.mjs     # 14 项安装后自检（CLI + 纯函数）
 ├─ tests/pack.spec.ts        # 契约 / bootstrap / 校验 / 真实 AgentHost 集成
 ├─ tests/firmware-registration.spec.ts  # 固件 Skill 注册 / 查重 / 卸载反注册 / 降级
 ├─ tests/verify-install.spec.ts         # 自检脚本的检查项 / 退出码 / 参数解析
@@ -120,7 +121,7 @@ git -C "$DSH_HOME/.dsh-rsi-agent/dev/assets" log --oneline
 ```
 
 预期：`agentHost.active.id === 'dev'`、`agentHost.active.toolNames === []`；`skills.list()` 共
-**11 条** = 6 个可进化种子 + 2 个领域固件（`dev-dispatch-contract` / `dev-quality-gate`）
+**12 条** = 6 个可进化种子 + 3 个领域固件（`dev-dispatch-contract` / `dev-quality-gate` / `dev-container`）
 + 3 个 core 固件（`rsi-evolution` / `skill-authorship` / `task-authorship`）；
 3 个 preset 均无 `broken` 诊断；**主会话**由 `agent-preset-registry.default: dev-leader` 决定；
 子 agent 的 `agent_preset` 枚举为 `dev-developer` / `dev-tester`（漏传时兜底 `dev-tester`，
@@ -129,7 +130,7 @@ git -C "$DSH_HOME/.dsh-rsi-agent/dev/assets" log --oneline
 #### 自动化自检：`pnpm verify:install`
 
 上面四条手工命令已固化为脚本 `scripts/verify-install.mjs`，安装后（或 CI 干净 checkout）
-一次跑完 13 项检查：
+一次跑完 14 项检查：
 
 ```bash
 DSH_HOME=/tmp/dsh-home pnpm verify:install       # 已安装态：读 $DSH_HOME/.dsh-rsi-agent/dev/assets/skills
@@ -137,9 +138,9 @@ pnpm verify:install                              # 未设置 DSH_HOME 时回退�
 node scripts/verify-install.mjs --assets <资产根> --firmware <固件根>
 ```
 
-- 输出 **13 行** `PASS` / `FAIL`：6 个可进化种子（`<资产根>/<name>/SKILL.md`）、
+- 输出 **14 行** `PASS` / `FAIL`：6 个可进化种子（`<资产根>/<name>/SKILL.md`）、
   5 个 references（`<资产根>/dev-test-strategy/references/<stack>.md`）、
-  2 个固件（`<固件根>/<name>/SKILL.md`）；
+  3 个固件（`<固件根>/<name>/SKILL.md`）；
 - 任一 `FAIL` 会打印可定位路径并以**退出码 1** 结束，可直接用作门禁；
 - 资产根优先级：`--assets` > `--home` > 环境变量 `DSH_HOME` > 仓库 `templates/`。
   前三者**任一显式给出**（`DSH_HOME` 非空即算）而目录不存在时，以**退出码 2** 报错并
@@ -263,7 +264,7 @@ cd "$HOME" && git clone <url>      # $HOME / ~/project / ~/agents 下直接落�
 pnpm typecheck     # tsc --noEmit
 pnpm test          # vitest（58 个用例：契约 / 种子 / references / 校验 / 固件注册 / 真实 AgentHost 集成 / 安装后自检）
 pnpm build         # 编译到 dist-server/ 并复制 cordis.patch.yml（内含 typecheck）
-pnpm verify:install # 13 项安装后自检（DSH_HOME 已设置时校验安装态资产）
+pnpm verify:install # 14 项安装后自检（DSH_HOME 已设置时校验安装态资产）
 ```
 
 改种子请先改 `templates/<name>/`（含 `references/*.md`），再同步 `src/seeds.ts`——
@@ -271,9 +272,9 @@ pnpm verify:install # 13 项安装后自检（DSH_HOME 已设置时校验安装�
 
 > `pnpm test` 带 `--passWithNoTests`：0 个用例也会退出 0。成功判据是 **58 passed**，不是只看退出码。
 
-## 8 个领域 Skill（运行态 11 条）
+## 9 个领域 Skill（运行态 12 条）
 
-运行时分三层，安装后 `skills.list()` 应为 **11 条**：
+运行时分三层，安装后 `skills.list()` 应为 **12 条**：
 
 | 层 | 条数 | 来源 | 是否可进化 |
 |----|------|------|------------|
@@ -281,12 +282,13 @@ pnpm verify:install # 13 项安装后自检（DSH_HOME 已设置时校验安装�
 | 领域固件 | 2 | `src/plugin.ts` 调 `ctx.skills.register()` 静态注册 | 否 |
 | core 固件 | 3 | core 自己注册：`rsi-evolution` / `skill-authorship` / `task-authorship` | 否 |
 
-`skills.list()` 断言 11 条 = 6 + 2 + 3；少任何一层都说明安装或注册不完整。
+`skills.list()` 断言 12 条 = 6 + 3 + 3；少任何一层都说明安装或注册不完整。
 
 | 类型 | 名称 | 作用 |
 |------|------|------|
 | 固件 | `dev-dispatch-contract` | 派发上下文卡片、preset、超时与返回格式 |
 | 固件 | `dev-quality-gate` | 三维质量闸门与证据门槛 |
+| 固件 | `dev-container` | 在项目级开发容器中构建 / 测试 / 运行；无配置时按依赖清单自动生成 |
 | 可进化 | `dev-decompose` | 需求拆解为可独立交付的任务 |
 | 可进化 | `dev-worktree-git` | worktree / 分支 / commit 规范 |
 | 可进化 | `dev-test-strategy` | 五栈检测与路由（具体命令在 `references/`） |
@@ -327,9 +329,9 @@ references 随种子同批注册（同一个 commit）；`validate` 只放行 `s
 - 自检脚本里 `agentHost.active.toolNames` 仍为空数组（本领域零工具），文件 / 命令 /
   技能 / 待办 / 子 agent 能力全部来自 preset 组合的 dsh 内置插件。
 - `await agentHost.skillProviderReady` 只表示 provider 已就绪，不保证 `skills.list()` 立刻
-  包含全部种子：web profile 下首次 `list()` 实测 **5 条**（3 个 core 固件 + 2 个领域固件），
-  约 1s 后才是 11 条（`rsi-skills` 首轮扫描滞后）。断言请**轮询到条数稳定**（例如连续两次
-  读到 11 条）再判定，不要只取首次结果。
+  包含全部种子：web profile 下首次 `list()` 实测 **6 条**（3 个 core 固件 + 3 个领域固件），
+  约 1s 后才是 12 条（`rsi-skills` 首轮扫描滞后）。断言请**轮询到条数稳定**（例如连续两次
+  读到 12 条）再判定，不要只取首次结果。
 
 ## 3 个 preset
 

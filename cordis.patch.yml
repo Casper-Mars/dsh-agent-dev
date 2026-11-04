@@ -81,6 +81,7 @@
                 2. 隔离：delivery_mode=commit 且 GIT_WRITE_OK → 建独立 worktree + 分支，不在主工作区改。
                    GIT_WRITE_BLOCKED → 在当前工作区编码，交付写明「未提交 + 原因」并附 git diff。
                 3. 环境：先读角色 Skill 的按栈路由，第一条回报给出 STACK=… REF=… DETECT=…。
+                   构建 / 测试 / 运行一律在项目级开发容器内执行（`dev-container`），不在 agent 容器安装 toolchain。
                    命令必须从 references/<stack>.md 复制，不凭记忆写；依赖装在 worktree 内，不共享全局环境。
                 4. 编码：只改与 AC 相关的文件；不顺手重构、不升级依赖、不改无关格式；一次只做一个小步并立刻验证。
                 5. 自测：内容（AC 全覆盖、边界与错误路径）/ 格式（typecheck、lint、build）/ 逻辑（分支自洽）三维全过。

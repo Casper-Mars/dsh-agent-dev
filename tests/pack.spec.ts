@@ -409,11 +409,11 @@ describe('assets.types[].validate 语义校验', () => {
  * ------------------------------------------------------------------ */
 
 describe('固件 Skill', () => {
-  it('恰好 2 个，名称唯一且不占用 core 保留名', () => {
+  it('恰好 3 个，名称唯一且不占用 core 保留名', () => {
     const firmware = devPack.firmwareSkills ?? []
-    expect(firmware).toHaveLength(2)
+    expect(firmware).toHaveLength(3)
     const names = firmware.map((skill) => skill.name)
-    expect(new Set(names).size).toBe(2)
+    expect(new Set(names).size).toBe(3)
     for (const name of names) {
       expect(FIRMWARE_SKILL_NAMES).not.toContain(name)
     }
@@ -435,7 +435,7 @@ describe('固件 Skill', () => {
     expect(markdown).not.toContain('同字段表格')
   })
 
-  it('2 个固件与 6 个种子名称互不重复', () => {
+  it('3 个固件与 6 个种子名称互不重复', () => {
     const firmwareNames = new Set((devPack.firmwareSkills ?? []).map((skill) => skill.name))
     for (const seed of SEED_SKILLS) {
       expect(firmwareNames.has(seed.name)).toBe(false)
@@ -461,7 +461,7 @@ describe('Leader 人设与子 agent 隔离', () => {
     expect(persona).toContain('## 阶段 2 · 派发（team）：只做元操作')
     expect(persona).toContain('## Red Lines（不可协商）')
     expect(persona).toContain('## 检查清单')
-    // Leader 规则已并入人设：细节只指向保留下来的两个固件 Skill。
+    // Leader 规则已并入人设：细节只指向保留下来的三个固件 Skill。
     expect(persona).toContain('`dev-dispatch-contract`')
     expect(persona).toContain('`dev-quality-gate`')
     expect(persona).not.toContain('绝不自己写业务代码')
