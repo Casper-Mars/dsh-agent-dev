@@ -3,12 +3,12 @@
  *
  * 背景（任务-02 修复）：core 的 `registerFirmwareSkills()` 只注册 **core 自己**
  * 的 3 个固件 SKILL（`rsi-evolution` / `skill-authorship` / `task-authorship`），
- * `pack.firmwareSkills` 仅用于**重名冲突校验** —— core **不会**注册领域声明的
- * markdown。因此领域侧必须自己把这 3 个固件 SKILL 静态注册进 `ctx.skills`，
+ * 领域声明仅用于**重名冲突校验** —— core **不会**注册领域声明的 markdown。
+ * 因此领域侧必须自己把这批 SKILL 静态注册进 `ctx.skills`，
  * 否则挂载后 `skills.get('dev-dispatch-contract')` 拿不到任何东西。
  *
- * 注：Leader 的行为规则不在固件里，而是并入 `src/pack.ts` 的 `LEADER_PERSONA`
- * （由 core 注入 `rsi-agent:persona`）。
+ * 注：Leader 的行为规则不在固件里，而是并入 `src/persona.ts` 的 `LEADER_PERSONA`
+ * （由插件注入主会话人设）。
  *
  * 本模块只做三件事（全部无副作用、可单测）：
  *   1. 从 `import.meta.url` 推导 `SKILL.md` 绝对路径（源码态 / dist 态同一语义）；
@@ -16,10 +16,23 @@
  *   3. 构造 `SkillRegistration`（source=runtime、resourceBase=SKILL 目录、双端可调用）。
  */
 import { readFileSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { SkillRegistration } from '@deepseek-ai/dsh-skill'
-import type { FirmwareSkill } from 'dsh-rsi-agent'
+
+/**
+ * 固件 SKILL 的最小描述（本地定义，不引入外部领域包类型）。
+ *
+ * 字段按当前用法收敛为两项：
+ *   - `name`：声明名，必须与目录名 / frontmatter.name 一致；
+ *   - `dir`：Skill 目录绝对路径（由 `src/domain.ts` 用 `import.meta.url` 推导）。
+ * `markdown` 仅为兼容旧调用方（内联正文 / 单测）保留，缺省时从 `dir/SKILL.md` 读取。
+ */
+export interface FirmwareSkill {
+  readonly name: string
+  readonly dir?: string
+  readonly markdown?: string
+}
 
 /** SKILL 文件名（上游 skill-filesystem provider 只认这个文件名）。 */
 export const SKILL_FILE = 'SKILL.md'
@@ -105,13 +118,18 @@ export function parseFirmwareSkillMarkdown(
  * 编译态 `dist-server/firmware.js` → 同样是 `<包根>/skills/`（`files` 已包含
  * `skills/`），因此两种形态共用一条路径语义。
  */
-export function firmwareSkillPath(name: string): string {
-  return fileURLToPath(new URL(`../skills/${name}/${SKILL_FILE}`, import.meta.url))
+/** 固件 SKILL 目录的默认绝对路径（调用方未提供 `dir` 时使用）。 */
+export function firmwareSkillDir(name: string): string {
+  return fileURLToPath(new URL(`../skills/${name}`, import.meta.url))
+}
+
+export function firmwareSkillPath(name: string, dir = firmwareSkillDir(name)): string {
+  return join(dir, SKILL_FILE)
 }
 
 /** 读取固件 SKILL 原文；失败时点名路径（构建期资源缺失属于打包错误）。 */
-export function loadFirmwareMarkdown(name: string): string {
-  const path = firmwareSkillPath(name)
+export function loadFirmwareMarkdown(name: string, dir?: string): string {
+  const path = firmwareSkillPath(name, dir)
   try {
     return readFileSync(path, 'utf8')
   } catch (error) {
@@ -132,8 +150,10 @@ export function loadFirmwareMarkdown(name: string): string {
  * @throws {Error} frontmatter 缺字段，或 frontmatter.name 与声明名不一致时。
  */
 export function buildFirmwareSkillRegistration(skill: FirmwareSkill): SkillRegistration {
-  const path = firmwareSkillPath(skill.name)
-  const parsed = parseFirmwareSkillMarkdown(skill.markdown, path)
+  const dir = skill.dir ?? firmwareSkillDir(skill.name)
+  const path = firmwareSkillPath(skill.name, dir)
+  const markdown = skill.markdown ?? loadFirmwareMarkdown(skill.name, dir)
+  const parsed = parseFirmwareSkillMarkdown(markdown, path)
   if (parsed.name !== skill.name) {
     throw new Error(
       `[dev] 固件 SKILL 声明名与 frontmatter.name 不一致：声明 "${skill.name}"、frontmatter "${parsed.name}"（${path}）`,
@@ -172,13 +192,13 @@ export interface PlanFirmwareSkillOptions {
 }
 
 /**
- * 把 `pack.firmwareSkills` 收敛成一份可执行的注册计划（纯函数）。
+ * 把领域 Skill 列表收敛成一份可执行的注册计划（纯函数）。
  *
  * 两层查重：
  *   1. 声明内部重名 → `duplicate-declaration`；
  *   2. 调用方 `skip(name)` 命中的（注册表已存在）→ `already-registered`。
  *
- * @param skills `pack.firmwareSkills`（可缺省）。
+ * @param skills 领域 Skill 列表（`DEV_DOMAIN.skills`，可缺省）。
  * @param options 查重回调。
  */
 export function planFirmwareSkillRegistrations(

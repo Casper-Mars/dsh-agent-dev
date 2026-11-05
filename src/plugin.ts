@@ -1,30 +1,65 @@
 /**
  * `dev-domain` 插件契约层：声明 Cordis 插件三要素（name / inject / apply）。
  *
- * 本包是 `dsh-rsi-agent` 的领域包：只声明 `agentHost` 一个跨包服务，
- * 拿到 core 提供的宿主后把 `dev` 领域安装进去（人设 / 资产 / 固件 Skill）。
+ * 本包是 `dev` 领域插件，**不依赖任何 core 私有包**：领域数据由
+ * `src/domain.ts` 的 {@link DEV_DOMAIN} 提供，Skill 正文由加载器从
+ * `skills/<name>/SKILL.md` 读取。
  *
- * 固件 Skill 的注册（任务-02 修复）：core 的 `registerFirmwareSkills()` 只注册
- * **core 自己的** 3 个固件 SKILL，`pack.firmwareSkills` 仅用于重名冲突校验，
- * core 不会注册其中声明的 markdown。故这里在 `install()` 成功后，由领域侧自己
- * 把 3 个固件 SKILL 静态注册进 `ctx.skills`，并与 install 的 Disposable 一起
- * 交给 `ctx.effect` 管理（领域卸载时反注册）。
+ * 本任务（任务-02）只做数据层解耦：保留现有 Skill 注册逻辑，`inject` 置空、
+ * 移除 install 调用。完整的原生插件改造（persona 生命周期、
+ * depth gate、resourceBase 语义、LIFO 反注册）留给任务-03。
  */
 import type { SkillRegistration } from '@deepseek-ai/dsh-skill'
 import type { Context } from '@deepseek-ai/cordis'
-import { createDomainLogger, type DomainLogger, type FirmwareSkill } from 'dsh-rsi-agent'
-import { planFirmwareSkillRegistrations, type SkippedFirmwareSkill } from './firmware.js'
-import { devPack } from './pack.js'
+import { DEV_DOMAIN } from './domain.js'
+import {
+  planFirmwareSkillRegistrations,
+  type FirmwareSkill,
+  type SkippedFirmwareSkill,
+} from './firmware.js'
 
 /** 插件唯一标识（必须与 `cordis.patch.yml` 中的 `dev-domain` 一致）。 */
 export const name = 'dev-domain'
 
 /**
- * 依赖服务：只声明 core 提供的 `agentHost`。
+ * 依赖服务：无。
  *
- * 必须与 `cordis.patch.yml` 中 `dev-domain` 条目的 `inject` 逐项一致。
+ * 任务-02 已去掉依赖注入；`cordis.patch.yml` 里仍写着旧的 inject，
+ * 由任务-04 同步（本任务不改该文件）。
  */
-export const inject = ['agentHost']
+export const inject: readonly string[] = []
+
+/* ------------------------------------------------------------------ *
+ * 日志（本地最小包装，基于 `ctx.logger`）
+ * ------------------------------------------------------------------ */
+
+/** 领域内只用到 `warn`；缺失 logger 时退回 `console.warn`。 */
+export interface DomainLogger {
+  warn(message: string, error?: unknown): void
+}
+
+/** `ctx.logger` 的最小结构。 */
+interface LoggerLike {
+  warn?: (...args: unknown[]) => void
+}
+
+/** 读取任意来源的 logger（ctx.logger / readService 结果），包成带领域前缀的 warn。 */
+export function createDomainLogger(raw: unknown, scope: string): DomainLogger {
+  const logger =
+    raw !== null && typeof raw === 'object' ? (raw as LoggerLike) : undefined
+  const prefix = `[${scope}]`
+  return {
+    warn(message: string, error?: unknown): void {
+      if (typeof logger?.warn === 'function') {
+        if (error === undefined) logger.warn(`${prefix} ${message}`)
+        else logger.warn(`${prefix} ${message}`, error)
+        return
+      }
+      if (error === undefined) console.warn(`${prefix} ${message}`)
+      else console.warn(`${prefix} ${message}`, error)
+    },
+  }
+}
 
 /* ------------------------------------------------------------------ *
  * 服务探测（与 core 同款容错：get() 优先，退化到属性读取）
@@ -84,7 +119,7 @@ function readSkillRegistry(ctx: Context): SkillRegistryLike | undefined {
  * `ctx.skills.list()` / `get()` 都是**异步** API，`apply()` 内无法同步等待，
  * 因此同步查重只能覆盖「本领域自己注册过的名字」（重复 apply / 重复 install
  * 的真实来源）。跨来源重名由 dsh-skill 保证：同一层同名 runtime 条目 first-wins
- * （后来者拿到 no-op disposer，不报错），core 若将来支持 `pack.firmwareSkills`，
+ * （后来者拿到 no-op disposer，不报错），若上游将来接管 Skill 注册，
  * 其条目先注册即胜出，语义与「跳过」一致；这种情况由
  * {@link verifyRegistrationWinner} 异步补一条 warn。
  */
@@ -172,7 +207,7 @@ function verifyRegistrationWinner(
  */
 export function registerDomainFirmwareSkills(
   ctx: Context,
-  skills: readonly FirmwareSkill[] | undefined = devPack.firmwareSkills,
+  skills: readonly FirmwareSkill[] | undefined = DEV_DOMAIN.skills,
   logger: DomainLogger = createDomainLogger(readService(ctx, 'logger'), 'dev-domain'),
 ): Array<() => void> {
   const registry = readSkillRegistry(ctx)
@@ -238,28 +273,18 @@ export function apply(ctx: Context): void {
   const logger = createDomainLogger(readService(ctx, 'logger'), 'dev-domain')
 
   ctx.effect(() => {
-    // install 返回的 Disposable 交给 ctx.effect 管理：fiber 卸载时自动拆卸领域。
-    const install = ctx.agentHost.install(devPack)
-
-    let unregisters: Array<() => void>
-    try {
-      unregisters = registerDomainFirmwareSkills(ctx, devPack.firmwareSkills, logger)
-    } catch (error) {
-      // 固件 Skill 注册失败：先拆领域再抛，绝不留下半个激活领域。
-      install()
-      throw error
-    }
+    // 领域数据来自 DEV_DOMAIN；register 失败时内部已回滚，不会留下半个注册表。
+    const unregisters = registerDomainFirmwareSkills(ctx, DEV_DOMAIN.skills, logger)
 
     return () => {
-      // 反注册顺序与注册顺序相反（LIFO），再拆卸领域。
+      // 反注册顺序与注册顺序相反（LIFO）。
       for (let index = unregisters.length - 1; index >= 0; index -= 1) {
         try {
           unregisters[index]?.()
         } catch (error) {
-          logger.warn('固件 Skill 反注册失败（已继续拆卸领域）', error)
+          logger.warn('固件 Skill 反注册失败', error)
         }
       }
-      install()
     }
-  }, 'dev-domain:install-dev-pack')
+  }, 'dev-domain:register-skills')
 }
