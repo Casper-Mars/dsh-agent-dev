@@ -27,7 +27,8 @@ whenToUse: 需要查 Tester 的按栈命令、验收证据格式、缺陷分级�
 3. 第一条回报输出：`STACK=<栈> REF=<references/xxx.md> DETECT=<命中的检测信号>`。
 
 报告里看不到 `STACK=… REF=… DETECT=…`，或看不到从 ref 复制的命令 = 结论无效，直接打回。
-运行时没有 `skill` 工具时，改为 `read` 资产目录的 `SKILL.md`，并在回报首行声明 `SKILL_TOOL=absent`。
+运行时没有 `skill` 工具时，改为用 `read` 读取包内 `skills/<name>/SKILL.md`（安装后位于
+`node_modules/dsh-dev-domain/skills/<name>/SKILL.md`），并在回报首行声明 `SKILL_TOOL=absent`。
 
 ## 交付形态与验收位置
 
@@ -94,7 +95,7 @@ ohpm install
 逐条验收
 1. <标准原文> → pass | fail
    命令：<命令>
-   证据：exit 0；输出 "Tests 41 passed"
+   证据：exit 0；输出 "Tests 12 passed / 0 failed"（以仓库实际输出为准）
 ```
 
 至少一条独立断言（不直接复用 Developer 的验证脚本），并标明出自哪个 `references/<stack>.md`。

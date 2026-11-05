@@ -1,7 +1,7 @@
 # dsh-dev-domain bundle patch —— 领域包自带「domain + presets」两层
 #
 # 只需 `dsh plugin --profile <p> add <本包>`：pnpm 装好本包后，bundle patch 一次
-# 插入本领域与 3 个 agent preset，profile 里得到 dev 领域（人设 + 资产 + 工具面）
+# 插入本领域与 3 个 agent preset，profile 里得到 dev 领域（人设 + 只读 Skill + 工具面）
 # 与子 agent 组合。人设由插件在根会话上原生注入，不再依赖外部 agentHost。
 #
 # id/name/inject 必须与 src/plugin.ts 逐项一致。

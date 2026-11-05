@@ -27,8 +27,9 @@ whenToUse: 需要查 Developer 的按栈命令、自检维度、禁止项与交�
 3. 第一条回报输出：`STACK=<栈> REF=<references/xxx.md> DETECT=<命中的检测信号>`。
 
 只加载 `dev-test-strategy` 而没读 ref、没抄命令 = 路由未完成，Leader / Tester 会直接打回。
-运行时没有 `skill` 工具时，改为 `read` 资产目录的 `SKILL.md`
-（`$DSH_HOME/.dsh-rsi-agent/dev/assets/skills/<name>/SKILL.md`），并在回报首行声明 `SKILL_TOOL=absent`。
+运行时没有 `skill` 工具时，改为用 `read` 读取包内 `skills/<name>/SKILL.md`（安装后位于
+`node_modules/dsh-dev-domain/skills/<name>/SKILL.md`，与 `dist-server/` 同级），并在回报首行声明
+`SKILL_TOOL=absent`。
 
 ## 按栈命令
 
@@ -79,7 +80,7 @@ ohpm install
 | 格式 | typecheck / lint / build 全 0 错误，风格与仓库一致 | 有 `error TS`、有未格式化文件、构建产物未忽略 |
 | 逻辑 | 分支自洽，错误路径有处理，无隐藏耦合 | 只测正向路径；异常输入静默失败 |
 
-每条命令都要记录**退出码 + 关键输出行**（例如 `Tests 41 passed`）。任一红 → 回到编码，不进入交付。
+每条命令都要记录**退出码 + 关键输出行**（例如 `Tests 12 passed / 0 failed`，以仓库实际输出为准）。任一红 → 回到编码，不进入交付。
 
 ## 交付证据格式
 

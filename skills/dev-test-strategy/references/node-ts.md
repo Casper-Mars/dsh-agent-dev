@@ -74,8 +74,8 @@ pnpm exec prettier --check .    # 有 prettier 配置时
 | 跑全部（脚本存在） | `pnpm test` |
 | 跑全部（vitest 直接用） | `pnpm exec vitest run` |
 | 监听模式（本地调试） | `pnpm exec vitest` |
-| 单个文件 | `pnpm exec vitest run tests/pack.spec.ts` |
-| 单个用例 | `pnpm exec vitest run -t "bootstrap 只调用一次 register"` |
+| 单个文件 | `pnpm exec vitest run tests/domain.spec.ts` |
+| 单个用例 | `pnpm exec vitest run -t "frontmatter 解析"` |
 | 覆盖率 | `pnpm exec vitest run --coverage` |
 | jest 项目 | `pnpm exec jest --ci`、`pnpm exec jest path/to.spec.ts -t "name"` |
 

@@ -2,7 +2,6 @@
 name: dev-container
 description: 以项目级开发容器执行编码任务：已有 .devcontainer/devcontainer.json 就直接 `devcontainer up/exec`；没有就按依赖清单（package.json / go.mod / pyproject.toml / requirements.txt / pom.xml / Cargo.toml）自动生成配置再构建执行。使用本技能处理任意语言的构建、测试、运行、依赖管理与版本敏感工具链；不用于纯文档产出，也不用 `docker run` 单镜像兜底。
 whenToUse: 任务涉及任意语言（Go/Node/Python/Java/Rust…）的构建、测试、运行、依赖管理、lint 或版本敏感工具链时；或用户明确要求使用 dev container 时。不用于只做需求、方案、评审等不执行代码的任务。
-user-invocable: true
 ---
 
 # 项目级开发容器（Project Dev Container）

@@ -4,9 +4,9 @@ description: 交付质量门：triage 与独立验收的分工、按仓库脚本
 whenToUse: 收到子 agent 产物或 Tester 报告、准备 commit、准备把任务标为完成时使用。
 ---
 
-# 质量闸门（固件）
+# 质量闸门
 
-本 Skill 是固件：随 `dsh-dev-domain` 发布，只读，不参与进化。
+本 Skill 随 `dsh-dev-domain` 发布，只读。
 
 ## 触发条件
 
@@ -24,7 +24,7 @@ whenToUse: 收到子 agent 产物或 Tester 报告、准备 commit、准备把�
 |------|--------------------|------------------------|
 | 目的 | 判断产物是否「齐全、能进验收」 | 判断产物是否「满足 AC、能交付」 |
 | 执行者 | Leader，只读操作 | `dev-tester`，独立环境 |
-| 做什么 | 文件是否存在、diff 是否越界、格式与四节标题、有无明显矛盾、命令是否跑过 | 换环境重跑、另写断言、逐条 AC 判定、边界与失败路径 |
+| 做什么 | 文件是否存在、diff 是否越界、格式与必需小节、有无明显矛盾、命令是否跑过 | 换环境重跑、另写断言、逐条 AC 判定、边界与失败路径 |
 | 环境 | 复用当前 worktree | 临时 worktree / 全新 `DSH_HOME`；`workspace` 形态必须先 `rsync` 到 `/tmp/verify-*` 副本再验，原地验收无效 |
 | 产出 | 进 / 不进验收 | PASS / FAIL + 证据 + 严重度 |
 | 能否作为交付依据 | **不能** | **能** |
@@ -37,7 +37,7 @@ whenToUse: 收到子 agent 产物或 Tester 报告、准备 commit、准备把�
 1. 回报里的文件是否都存在：逐个 `ls`，不靠子 agent 自述。
 2. `git status --short`：有无未预期的新文件、临时文件、`.orig` / `.rej`。
 3. `git diff --stat`：文件数与行数是否超出卡片允许范围。
-4. 格式：产物类型是否正确？frontmatter、缩进、约定的小节标题是否符合规范。
+4. 格式：产物类型是否正确？frontmatter、缩进、必需的小节标题是否符合规范。
 5. 逻辑：同一文档前后是否矛盾，引用路径是否存在。
 6. 命令：回报里的命令与退出码是否齐全；缺一项就退回补证据。
 
@@ -71,7 +71,7 @@ ls build-profile.json5 oh-package.json5 2>/dev/null            # 鸿蒙
 
 ```text
 $ pnpm typecheck → exit 0
-$ pnpm test → exit 0（41 passed）
+$ pnpm test → exit 0（全部通过，用例数见实际输出）
 $ pnpm build → exit 0
 ```
 
@@ -112,9 +112,9 @@ $ pnpm build → exit 0
 环境：macOS 15 / Node v22.20.0 / pnpm 11.7.0 / commit 45a1443
 验收方式：临时 worktree /tmp/verify-task-03 + 独立断言 2 条
 **逐条验收**
-- AC1 三个文件含四节标题 — PASS — `rg -c '^## (触发条件|步骤|禁止项|检查清单)'` → 3/3/3
+- AC1 三个文件含必需小节 — PASS — `rg -c '^## (触发条件|步骤)'` → 3/3
 - AC2 `pnpm typecheck` exit 0 — PASS — 见下
-- AC3 `pnpm test` 41 条不回退 — FAIL — 39 passed / 2 failed（tests/pack.spec.ts:280）
+- AC3 用例数不回退 — FAIL — 3 failed（tests/domain.spec.ts:42，以实际输出为准）
 **命令与退出码**
 1. `pnpm typecheck` → exit 0
 2. `pnpm test` → exit 1（2 failed）
@@ -132,7 +132,7 @@ $ pnpm build → exit 0
 ```text
 任务-03 已交付（或：未交付，原因）
 - 分支 / commit：feat/task-03-firmware-skills @ a1b2c3d
-- 命令与退出码：pnpm typecheck → 0；pnpm test → 0（41 passed）；pnpm build → 0
+- 命令与退出码：pnpm typecheck → 0；pnpm test → 0（全部通过）；pnpm build → 0
 - 逐条验收：AC1 PASS / AC2 PASS / AC3 PASS
 - 未覆盖项：xxx（没有就写「无」）
 - 风险：xxx（没有就写「无」）
@@ -149,7 +149,7 @@ $ pnpm build → exit 0
 - 禁止 Tester 修改业务代码、放宽断言、替 Developer 修 bug。
 - 禁止复用被测方的脚本作为唯一证据，禁止在被测方的工作区里「原地验收」。
 - 禁止隐瞒失败、截断错误输出、只贴成功片段；禁止把 `major` 降级成 `minor` 放行。
-- 禁止在 `blocker` 存在时 commit 或 push；禁止改固件 Skill / 测试断言让门禁变绿。
+- 禁止在 `blocker` 存在时 commit 或 push；禁止改随包 Skill / 测试断言让门禁变绿。
 
 ## 检查清单
 

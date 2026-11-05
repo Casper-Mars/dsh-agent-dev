@@ -72,7 +72,7 @@ git worktree add -b <type>/<任务号>-<描述> \
 
 | type | 用途 |
 |------|------|
-| `feat` | 新功能、新资产、新能力 |
+| `feat` | 新功能、新 Skill、新能力 |
 | `fix` | 修 bug、修回归 |
 | `docs` | 仅文档 |
 | `refactor` | 不改外部行为的重构 |
@@ -118,32 +118,31 @@ chore/bump-vitest-3-2
 ```
 
 - 标题 ≤ 72 字符，祈使句，结尾不加句号；
-- `scope` 用模块名（`pack`、`seeds`、`tests`、`readme`），可省略；
+- `scope` 用模块名（`domain`、`plugin`、`skills`、`scripts`、`tests`、`readme`），可省略；
 - 正文写「为什么」，不写「改了什么」——改了什么看 diff；
 - 破坏性变更用 `!`（`feat(pack)!: ...`）并在正文写迁移方式。
 
 示例：
 
 ```
-feat(task-04): 扩写 5 个可进化 Skill 与五栈 references
+feat(skills): 补齐 dev-container 的项目级容器流程
 
-- templates/ 为真源，seeds.ts 同步生成，测试逐字节比对
-- bootstrap 改为一次 register 注册 10 个资产（5 SKILL + 5 ref）
+- 明确 PROJECT_DIR 与 WF 取值，补 split 形态的 workspaceMount 说明
 - 验证：pnpm typecheck / pnpm test / pnpm build 均 exit 0
 ```
 
 ```
-fix(task-03): 固件 Skill 在 provider 就绪前不可见
+fix(plugin): Skill 注册失败时回滚不完整
 
-原因：ctx.skills.register 在 install 之后异步执行……
-验证：pnpm test tests/firmware-registration.spec.ts（14 passed）
+原因：中途注册失败后只反注册了已成功项，未恢复 persona 注入状态……
+验证：pnpm test tests/plugin.spec.ts（全部通过，用例数以实际输出为准）
 ```
 
 ## 五、何时拆分 commit
 
 拆：
 
-- 内容改动与「让内容生效的机制改动」分开（例：先提 templates/seeds，再提 pack/bootstrap）；
+- 内容改动与「让内容生效的机制改动」分开（例：先提 `src/plugin.ts`，再提 `skills/**`）；
 - 格式化/重命名与逻辑改动分开；
 - 修 bug 的「复现测试」与「修复」可以同 commit，但要在正文说明测试先红后绿；
 - diff 超过 400 行且明显分成两个主题。

@@ -1,8 +1,8 @@
 {
   "name": "dsh-dev-domain",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
-  "description": "开发领域包（dsh）：为 rsi-agent 提供开发团队的 Leader 人设、可进化 Skill 种子与子 agent preset",
+  "description": "开发领域包（dsh）：原生单包提供 Leader 人设、8 个只读领域 Skill 与 3 个 agent preset",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -48,20 +48,17 @@
     "build": "pnpm clean && pnpm typecheck && tsc -p tsconfig.server.json && node scripts/copy-assets.mjs",
     "build:server": "pnpm clean && tsc -p tsconfig.server.json && node scripts/copy-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "verify:install": "node scripts/verify-install.mjs",
     "clean": "rm -rf dist dist-server",
     "prepublishOnly": "pnpm build"
   },
-  "dependencies": {
-    "dsh-rsi-agent": "^0.1.0"
-  },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.5",
-    "@deepseek-ai/dsh-llm": "^0.2.0-rc.2",
-    "@deepseek-ai/dsh-skill": "^0.2.0-rc.2",
-    "@deepseek-ai/dsh-skill-filesystem": "^0.2.0-rc.2",
-    "@deepseek-ai/dsh-tools": "^0.2.0-rc.2"
+    "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-skill": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-skill-filesystem": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.2"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-skill": {

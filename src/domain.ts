@@ -45,10 +45,10 @@ function skill(name: string, description: string): DevSkill {
   return { name, description, dir: skillDir(name) }
 }
 
-/** `dev` 领域：8 个 Skill（3 个随包固件 + 5 个可进化）+ Leader 人设。 */
+/** `dev` 领域：8 个只读 Skill + Leader 人设。 */
 export const DEV_DOMAIN: DevDomain = {
   id: 'dev',
-  version: '0.1.0',
+  version: '0.2.0',
   displayName: 'Dev Domain',
   personaMarkdown: LEADER_PERSONA,
   skills: [
@@ -59,6 +59,6 @@ export const DEV_DOMAIN: DevDomain = {
     skill('dev-test-strategy', '测试策略只做栈检测与路由：按清单文件判断技术栈，指向对应 references/<stack>.md，并给出通用测试原则与未识别栈兜底。'),
     skill('dev-role-developer', 'Developer 子 agent 的执行细则：按栈命令、ref 路由、自检维度、禁止项与交付证据格式。'),
     skill('dev-role-tester', 'Tester 子 agent 的执行细则：按栈命令、验收证据格式、边界覆盖、缺陷分级与禁止项。'),
-    skill('dev-retro', '任务复盘规范：触发条件、失败模式分类、单变量进化提案格式（现象/证据/预期指标/回滚），禁止把一次性偏好当规则。'),
+    skill('dev-retro', '任务复盘规范：触发条件、失败模式分类、单变量改进提案格式（现象/证据/预期指标/回滚），禁止把一次性偏好当规则。'),
   ],
 }

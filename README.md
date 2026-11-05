@@ -2,362 +2,222 @@
 
 > 在本仓库工作的 agent 请先读 [AGENTS.md](./AGENTS.md)。
 
-开发领域包（dsh）：为 [`dsh-rsi-agent`](../dsh-rsi-agent) 提供 **Dev Leader 人设**、**8 个领域 Skill**
-（3 个固件 + 5 个可进化种子）与 **3 个 agent preset**（Leader / Developer / Tester）。
+`dsh-dev-domain` 是 dsh 的**开发领域原生单包**：装这一个包，就能得到
 
-## 设计边界
+- **Dev Leader persona**：注入主会话（depth 0 根 agent）的常驻 system prompt；
+- **8 个只读领域 Skill**：随包发布在 `skills/`，运行时由插件注册进 `ctx.skills`；
+- **3 个 agent preset**：`dev-leader` / `dev-developer` / `dev-tester`，由 `cordis.patch.yml` 装配。
 
-- **零工具**：`tools()` 返回空数组，`toolNames` 为空；文件 / 命令 / 技能 / 待办 / 子 agent 全部由 preset 组合 dsh 内置能力。
-- **零状态文件**：领域不写业务数据，只在首次安装时通过 `assets.bootstrap` 注册 5 个可进化 Skill 种子与其参考文档。
-- **单次提交**：bootstrap 只调用一次 `writer.register([...])`，10 个资产（5 个 `SKILL.md` + 5 个 `references/*.md`）落在**同一个** commit 里。
-- **人设唯一来源**：主会话人设由 `DomainPack.persona.markdown()`（`src/pack.ts` 的 `LEADER_PERSONA`）注入
-  `rsi-agent:persona`；`preset-dev-leader` 不挂 persona，避免 `complete: true` 的 shadow 行为覆盖领域人设。
-- **流程上移到 persona**：单任务流程骨架（对齐 → 派发 → 自检 → 独立验证 → 交付）常驻 persona；
-  可进化 Skill 只留命令、判据与红线，不再承载「步骤 0–N」。流程一旦变成可选，模型就可能不加载。
-- **子 agent 隔离**：`dev-developer` / `dev-tester` 两个 preset 的 persona 声明 `complete: true`，
-  各自携带 15–25 行流程骨架；子 agent 不继承 Leader 人设（persona 原文只来自各自 preset）。
-
-## 目录结构
-
-```
-.
-├─ cordis.patch.yml          # bundle patch：rsi-agent + dev-domain + 3 preset + subagent 配置
-├─ package.json              # dsh.bundle.patch 指向 cordis.patch.yml；files 含 skills/
-├─ src/
-│  ├─ index.ts               # 包入口
-│  ├─ plugin.ts              # Cordis 插件（name / inject / apply；固件 Skill 静态注册 + 反注册）
-│  ├─ pack.ts                # DomainPack：人设、资产类型与校验、固件 Skill 声明、bootstrap
-│  ├─ firmware.ts            # 固件 SKILL 路径 / frontmatter 解析 / SkillRegistration 构造
-│  └─ seeds.ts               # 5 个可进化 Skill 的种子正文 + 5 个 references（与 templates 逐字节一致）
-├─ skills/                   # 固件 Skill（随包发布、只读、不参与进化）
-│  ├─ dev-dispatch-contract/
-│  ├─ dev-quality-gate/
-│  └─ dev-container/
-├─ templates/                # 5 个可进化 Skill 的种子模板（种子正文的真源）
-│  ├─ dev-worktree-git/
-│  ├─ dev-test-strategy/     # 只做栈检测与路由
-│  │  └─ references/         # 五栈参考：go / node-ts / react / harmony-arkts / python
-│  ├─ dev-role-developer/
-│  ├─ dev-role-tester/
-│  └─ dev-retro/
-├─ scripts/
-│  ├─ copy-assets.mjs        # 把 cordis.patch.yml 等资源复制进 dist-server/
-│  └─ verify-install.mjs     # 13 项安装后自检（CLI + 纯函数）
-├─ tests/pack.spec.ts        # 契约 / bootstrap / 校验 / 真实 AgentHost 集成
-├─ tests/firmware-registration.spec.ts  # 固件 Skill 注册 / 查重 / 卸载反注册 / 降级
-├─ tests/verify-install.spec.ts         # 自检脚本的检查项 / 退出码 / 参数解析
-├─ tsconfig.json / tsconfig.server.json / vitest.config.ts
-├─ pnpm-workspace.yaml       # overrides: dsh-rsi-agent → link:../dsh-rsi-agent
-├─ AGENTS.md                # 面向在本仓库工作的 agent 的操作手册
-└─ .npmrc
-```
+零外部核心依赖：不需要额外安装任何 agent core 包，也没有「先编译 core 再装领域包」的前置步骤。
+`peerDependencies` 里的 `@deepseek-ai/*` 只提供类型与运行时服务契约，由 dsh 侧提供，用户无需单独安装。
+版本 `0.2.0` 起为**原生只读 Skill**：**无进化能力、无资产目录、无 bootstrap**。Skill 正文只来自
+包内 `skills/`，不写盘、不被改写；升级或重装会原样覆盖，不存在「已进化内容」需要保留。
 
 ## 安装
 
 前置：dsh `0.2.1-rc.2`、Node ≥ `22.19.0`、pnpm ≥ `11.7.0`。
 
-`dsh-rsi-agent` 尚未发布到 npm，因此**必须先把 core 与本仓库都编译**（`link:` 安装不会为被链接包
-安装依赖，profile 端的 `main` 指向 `dist-server/index.js`，不编译则加载失败）：
-
 ```bash
-cd /path/to/dsh-rsi-agent
-pnpm install && pnpm build      # 产出 dist-server/
+# 在仓库根目录：安装依赖并编译（产出 dist-server/）
+pnpm install
+pnpm build
 
-cd /path/to/dsh-dev-domain
-pnpm install                    # workspace override 把 dsh-rsi-agent 链到 ../dsh-rsi-agent
-pnpm build                      # 产出 dist-server/（含 cordis.patch.yml）
+# 装进指定 profile（首次使用会自动初始化 profile）
+dsh plugin --profile <p> add link:$PWD
 ```
 
-### 装进已有 profile（推荐）
+发布后可直接按版本安装（registry 上尚无该版本，`npm view dsh-dev-domain` 当前返回 404）：
 
 ```bash
-export DSH_HOME="${DSH_HOME:-$HOME/.dsh}"   # 未设置时 dsh 默认在此
-dsh plugin --profile web add link:/path/to/dsh-dev-domain
-cd "$DSH_HOME/profiles/web" && pnpm add link:/path/to/dsh-rsi-agent
-dsh web
+dsh plugin --profile <p> add dsh-dev-domain@0.2.0   # 发布后可用
 ```
 
-第二条命令是必需的：pnpm 不会为 `link:` 依赖安装它自己的依赖，profile 里必须先有
-`dsh-rsi-agent` 才能解析 bundle patch 插入的 `rsi-agent` 行。这里用 `pnpm add` 而不是
-`dsh plugin add`，是因为后者会把 core 也追加为**第二个 bundle**，导致 `rsi-agent` 重复插入。
+`link:` 安装的是当前目录，改动后需要 `pnpm build` 重新生成 `dist-server/`；`main` 指向
+`dist-server/index.js`，不编译则加载失败。本包没有运行时依赖，profile 端无需再补装任何包。
 
-### 装进全新 profile
-
-`dsh plugin` 首次使用会自动初始化 profile，落地后 `dsh.bundle.patch` 会把
-`rsi-agent` + `dev-domain` + 3 个 preset 一起插进组合树：
+### 装完核对组合树
 
 ```bash
-export DSH_HOME=/tmp/dsh-dev
-dsh plugin --profile dev add link:/path/to/dsh-dev-domain
-cd "$DSH_HOME/profiles/dev" && pnpm add link:/path/to/dsh-rsi-agent
-dsh --profile dev --dump-config | grep -E "dev-domain|preset-dev-"
+dsh --profile <p> --dump-config | grep -E "dev-domain|preset-dev-"
 ```
 
-> 该 profile 只有 base 能力、没有 UI app；日常使用请走上面「已有 profile」的方式。
+应能看到：
 
-### 发布到 npm 后
+- `dev-domain`，`inject: ['skills', 'agents']`；
+- `agent-preset-registry.default: dev-leader`（决定**主会话** preset）；
+- 3 个 preset：`dev-leader`、`dev-developer`、`dev-tester`；
+- `tool-subagent` 的 `agentPreset: dev-tester`、`allowedAgentPresets: [dev-developer, dev-tester]`、`maxDepth: 1`。
+
+### 怎么用
+
+装好后主会话就是 Dev Leader。给它「需求 + 验收标准 + 约束」，它会编号 AC、拆任务、派发
+`dev-developer` 编码、再派 `dev-tester` 独立验收。只有同时满足「改动文件 ≤ 2、diff ≤ 80 行、
+无新增依赖、不改公共 API、无数据迁移、单条命令可判定」且不属于安全 / 权限 / 支付 / 生产数据类，
+才允许 Leader 自己动手（solo），且默认仍是 team。
+
+## 自检
+
+仓库内五连（全部应在仓库根目录执行）：
 
 ```bash
-dsh plugin --profile web add dsh-dev-domain
+pnpm typecheck        # tsc --noEmit
+pnpm build            # 产出 dist-server/；npm pack 的发布内容依赖它
+pnpm test             # vitest run：5 个 spec、81 个用例
+pnpm verify:install   # 13/13 PASS：8 个 SKILL.md + 5 个 references
+npm pack --dry-run    # 检查发布内容清单（必须在 build 之后执行）
 ```
 
-`dependencies.dsh-rsi-agent` 已声明 `^0.1.0`，正常依赖解析会一并装上 core，无需手动补第二条命令。
+判据：
 
-### 安装后自检
+| 命令 | 成功判据 |
+|------|----------|
+| `pnpm typecheck` | 退出码 0，无类型错误 |
+| `pnpm build` | 退出码 0，产出 `dist-server/index.js` 与 `dist-server/cordis.patch.yml` |
+| `pnpm test` | **81 passed**、退出码 0（`vitest run`，0 个用例会直接失败） |
+| `pnpm verify:install` | 13 行 `PASS`、退出码 0；任一 `FAIL` 退出码 1；目录 / 参数错误退出码 2 |
+| `npm pack --dry-run` | build 后共 29 个文件；清单含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
+
+`npm pack --dry-run` 不依赖构建缓存：干净树（没有 `dist-server/`）实测只有 18 个文件且不含任何
+运行时产物，所以必须先 `pnpm build` 再打清单。
+
+`verify:install` 默认检查**包内** `skills/`，不需要安装到 profile；`--assets <dir>` 仅用于手工
+核查任意目录下的 `skills/` 布局，不是默认路径：
 
 ```bash
-# 组合树里应出现 rsi-agent / dev-domain / 3 个 preset / tool-subagent 覆盖
-dsh --profile web --dump-config | grep -E "dev-domain|preset-dev-|allowedAgentPresets"
-
-# 资产目录应出现 5 个种子 Skill（默认会话 id = dev）
-ls "$DSH_HOME/.dsh-rsi-agent/dev/assets/skills"
-
-# 五栈参考文档应随种子落盘（路由可达）
-ls "$DSH_HOME/.dsh-rsi-agent/dev/assets/skills/dev-test-strategy/references"
-
-# 只应有一个种子提交（加上仓库初始化共 2 个）
-git -C "$DSH_HOME/.dsh-rsi-agent/dev/assets" log --oneline
+node scripts/verify-install.mjs --assets /path/to/skills
 ```
 
-预期：`agentHost.active.id === 'dev'`、`agentHost.active.toolNames === []`；`skills.list()` 共
-**11 条** = 5 个可进化种子 + 3 个领域固件（`dev-dispatch-contract` / `dev-quality-gate` / `dev-container`）
-+ 3 个 core 固件（`rsi-evolution` / `skill-authorship` / `task-authorship`）；
-3 个 preset 均无 `broken` 诊断；**主会话**由 `agent-preset-registry.default: dev-leader` 决定；
-子 agent 的 `agent_preset` 枚举为 `dev-developer` / `dev-tester`（漏传时兜底 `dev-tester`，
-见「3 个 preset」）；子 agent 的 system prompt 只含自己的角色措辞。
-
-#### 自动化自检：`pnpm verify:install`
-
-上面四条手工命令已固化为脚本 `scripts/verify-install.mjs`，安装后（或 CI 干净 checkout）
-一次跑完 13 项检查：
-
-```bash
-DSH_HOME=/tmp/dsh-home pnpm verify:install       # 已安装态：读 $DSH_HOME/.dsh-rsi-agent/dev/assets/skills
-pnpm verify:install                              # 未设置 DSH_HOME 时回退仓库 templates/
-node scripts/verify-install.mjs --assets <资产根> --firmware <固件根>
-```
-
-- 输出 **13 行** `PASS` / `FAIL`：5 个可进化种子（`<资产根>/<name>/SKILL.md`）、
-  5 个 references（`<资产根>/dev-test-strategy/references/<stack>.md`）、
-  3 个固件（`<固件根>/<name>/SKILL.md`）；
-- 任一 `FAIL` 会打印可定位路径并以**退出码 1** 结束，可直接用作门禁；
-- 资产根优先级：`--assets` > `--home` > 环境变量 `DSH_HOME` > 仓库 `templates/`。
-  前三者**任一显式给出**（`DSH_HOME` 非空即算）而目录不存在时，以**退出码 2** 报错并
-  打印该路径，**不回退**——安装未完成必须显式失败，而不是被判「全 PASS」；
-  只有三者都没有时才回退仓库 `templates/`，此时报告多一行 `# 仓库模板回退（…）：<路径>`；
-- 参数：`--assets <dir>` 直接指定资产根；`--home <dir>` 指定 dsh home（脚本自动拼
-  `.dsh-rsi-agent/dev/assets/skills`）；`--firmware <dir>` 指定固件根（默认包根 `skills/`）。
-
-## 怎么用
-
-装进 profile 后，主会话就是 **Dev Leader**。你给的是「需求 + 验收标准 + 约束」，不是逐行指令；
-Leader 负责拆解、派发、验收和汇报。
-
-### team 模式（默认）
-
-直接把完整需求发给 Leader，例如：
+## 目录
 
 ```text
-需求：给 dsh-finance 增加日线 MACD 背离检测，把信号输出成 CSV。
-验收：
-1. pnpm test 全绿，新增用例覆盖「有背离 / 无背离」两条路径；
-2. 用仓库里的样例数据跑一次，能生成 CSV 且至少一行信号；
-3. README 补一段用法，命令可直接复制执行。
-约束：只改 packages/detector，不改公共 API，不新增运行时依赖，禁止 push。
+.
+├─ .gitignore                    # 忽略 node_modules/ 与构建产物
+├─ .npmrc                        # pnpm 安装策略（hoist / peer / workspace）
+├─ LICENSE                       # Apache-2.0
+├─ cordis.patch.yml              # bundle patch：dev-domain + 3 个 preset + 顶层 tool-subagent 覆盖
+├─ package.json                  # dsh.bundle.patch 指向 cordis.patch.yml；files 含 skills/
+├─ pnpm-lock.yaml                # 依赖锁定
+├─ src/
+│  ├─ index.ts                   # 包入口：re-export 插件三要素与领域数据
+│  ├─ plugin.ts                  # Cordis 插件：inject ['skills','agents']；注册 8 个 Skill；depth 0 注入 persona
+│  ├─ domain.ts                  # DEV_DOMAIN：id / version / displayName / persona / 8 个 Skill 元数据
+│  ├─ persona.ts                 # LEADER_PERSONA：Leader 的全部行为规则（人设唯一来源）
+│  └─ firmware.ts                # SKILL.md 读取 / frontmatter 解析 / SkillRegistration 构造
+├─ dist-server/                  # 构建产物：pnpm build 生成，git 忽略，不手工编辑
+├─ skills/                       # 唯一的 Skill 源（8 个只读 Skill，随包发布）
+│  ├─ dev-container/SKILL.md
+│  ├─ dev-dispatch-contract/SKILL.md
+│  ├─ dev-quality-gate/SKILL.md
+│  ├─ dev-retro/SKILL.md
+│  ├─ dev-role-developer/SKILL.md
+│  ├─ dev-role-tester/SKILL.md
+│  ├─ dev-test-strategy/
+│  │  ├─ SKILL.md                # 只做栈检测与路由
+│  │  └─ references/             # go / node-ts / react / harmony-arkts / python
+│  └─ dev-worktree-git/SKILL.md
+├─ scripts/
+│  ├─ copy-assets.mjs            # 把 cordis.patch.yml 复制进 dist-server/
+│  └─ verify-install.mjs         # 13 项包内自检（CLI + 导出纯函数）
+├─ tests/                        # 5 个 spec：domain / plugin / patch / firmware-registration / verify-install
+├─ tsconfig.json                 # 类型检查
+├─ tsconfig.server.json          # 编译到 dist-server/
+├─ vitest.config.ts
+├─ pnpm-workspace.yaml
+├─ AGENTS.md
+└─ README.md
 ```
 
-期望流程：
+### 运行时装配
 
-1. Leader 按人设中的规则（对齐 → size 判定 → team / solo）把验收标准编号成 AC1…ACn，跑写权限预检并判定 size；
-2. 用 `leader-task-plan`（dsh-domain）拆成可独立验收的任务，`todo_write` 建一次任务清单；
-3. 按 `dev-dispatch-contract` 填 10 字段卡片，派 `dev-developer`（显式传 `agent_preset`）；
-4. Developer 交付后，Leader 先做 triage（文件、diff 范围、命令证据），**不把 triage 当验收**；
-5. 再派 `dev-tester` 独立验收（独立副本 / 临时 worktree，自己跑命令并另写断言）；
-6. Tester PASS 后交付：分支 + commit、每条 AC 的证据、未覆盖项与风险；
-7. Leader 停下，等你说「继续 / 下一个」才推进下一任务。
+1. `cordis.patch.yml` 插入 `dev-domain` 插件、`agent-preset-registry`（default=`dev-leader`）与 3 个 preset；
+2. 插件 `apply()` 从 `ctx.skills` 注册 8 个 Skill（正文读 `skills/<name>/SKILL.md`），注册中途失败会
+   原子回滚，卸载时按 LIFO 反注册；
+3. 插件监听 `agent/created`，只给 **depth 0** 根 agent 注入 `LEADER_PERSONA`；子 agent 使用各自 preset
+   的 persona，不继承 Leader 人设。
 
-如果需求含糊、验收标准缺失或需要生产凭据，Leader 应当先停下来问你，而不是猜。
+`inject` 只声明 `['skills', 'agents']`；`systemPrompt` 是 per-agent 服务，缺失时只 warn 降级，不阻断
+Skill 注册。
 
-### solo 模式（仅 size=S）
+### 8 个 Skill
 
-只有**同时**满足以下全部条件，且不属于安全 / 权限 / 支付 / 密钥 / 生产数据 / 数据迁移类，
-才允许 Leader 自己动手（默认仍是 team）：
+| Skill | 作用 |
+|-------|------|
+| `dev-container` | 在项目级开发容器中构建 / 测试 / 运行；无配置时按依赖清单生成 |
+| `dev-dispatch-contract` | 派发上下文卡片、preset 选择、边界与回报格式 |
+| `dev-quality-gate` | 质量闸门（triage 六查）、独立验收分工与缺陷分级 |
+| `dev-worktree-git` | worktree / 分支 / commit 规范与写权限预检 |
+| `dev-test-strategy` | 只做栈检测与路由，命令在 `references/<stack>.md` |
+| `dev-role-developer` | Developer 的执行细则、自检维度与交付证据 |
+| `dev-role-tester` | Tester 的验收细则、边界覆盖与报告格式 |
+| `dev-retro` | 复盘触发条件、失败模式分类与单变量改进提案 |
 
-- 改动文件数 ≤ 2；
-- diff 行数 ≤ 80；
-- 无新增依赖；
-- 不改公共 API / schema；
-- 无数据迁移；
-- 单条命令可判定验收。
+全部只读：没有 `templates/`、没有 `src/seeds.ts`、没有 `assets.bootstrap`，也没有任何资产落盘步骤。
 
-solo 也必须：建 worktree + 分支、按仓库脚本跑 `typecheck` / `test` / `build`、逐条记录命令与退出码，
-并在交付里声明「本次为 solo，无独立 Tester」+ 未覆盖项。实际 diff 一旦超出阈值，立即停手转 team。
-判定不了就按 team 处理。
-
-### 交付形态
-
-派发卡片第 10 项必须写 `delivery_mode`：
-
-| 形态 | 适用条件 | 交付物 |
-|------|----------|--------|
-| `commit`（默认） | 写权限预检为 `GIT_WRITE_OK`，能建 worktree / commit | 分支 + commit hash + 命令证据 |
-| `workspace` | 预检为 `GIT_WRITE_BLOCKED`（如 linked worktree 的 `.git` 在 `workspaceRoot` 之外，`workspace-write` 沙箱拒绝写） | 当前工作区改动 + 基线 commit + `git diff` + 命令证据，明确「未提交 + 原因」 |
-
-写权限预检、`GIT_WRITE_BLOCKED` 的两种恢复方式与「工作区交付」细则见
-`dev-worktree-git`（安装后资产目录 `<assets>/skills/dev-worktree-git/SKILL.md`，真源
-`templates/dev-worktree-git/SKILL.md`）。预检只在 Leader 启动 dsh 的
-cwd 做一次；`GIT_WRITE_BLOCKED` 下不要反复重试或尝试提权。
-
-### 验证纪律
-
-- **进度记录**：跟踪任务进度：优先用可用工具；确实没有工具时，才写 <workspace>/task-status.md（workspace 根，不放项目仓内）。
-- **triage ≠ 独立验收**：Leader 只读检查文件是否存在、diff 是否越界、证据是否齐全，不能作为交付依据；
-- **编码任务必须跑三件套**：`typecheck` → `test` → `build`，按仓库实际脚本执行并记录退出码；
-- **Tester 必须独立重跑**：`commit` 形态用临时 worktree，`workspace` 形态先
-  `rsync -a --exclude node_modules --exclude .git <worktree>/ /tmp/verify-<task>-<ts>/`，
-  只在副本内跑命令；至少写一条独立于 Developer 的断言；
-- **原地验收无效**：在交付 worktree 里直接跑命令、报告里没有 `/tmp/verify-*` 副本路径，
-  一律打回重验；
-- 修完 FAIL 必须完整重跑，不只跑失败那条；测试被 `skip` / 放宽断言视为未通过。
-
-## 项目落位
-
-**硬规则：所有项目一律落在 `<workspace>/projects/<repo>`。**
-
-`<workspace>` 是 dsh 会话默认 cwd（用 `pwd -P` 取真实路径），**不是** `DSH_HOME`；两者不要混用。
-Leader 在阶段 1·对齐时就要定好路径并写进派发卡片第 5 项，子 agent 不得自行选路径。
-
-| 场景 | 做法 |
-|------|------|
-| 新建项目 | `mkdir -p <workspace>/projects/<repo>` 后 `git init` |
-| 克隆项目 | `git clone <url> "<workspace>/projects/<repo>"` |
-| 卡片给的是外部路径 | 改写成 `<workspace>/projects/<repo>` 并说明；用户坚持原路径 → 停下确认 |
-| 既有本地仓库 | 原地使用，不迁移、不复制，不在 `projects/` 下再克隆一份 |
-| `<workspace>/projects/<repo>` 已存在且非空 | 停下问是复用还是换名，不覆盖、不删除 |
-
-正例：
-
-```bash
-ws=$(pwd -P)                      # /Users/me/agents/dsh-dev
-mkdir -p "$ws/projects/pricing-svc"
-cd "$ws/projects/pricing-svc" && git init
-
-git clone git@github.com:acme/report.git "$ws/projects/report"
-```
-
-反例（一律禁止）：
-
-```bash
-cd "$(pwd -P)" && git init        # workspace 根变成了项目仓
-git init                           # <workspace>/projects 根
-cd "$HOME" && git clone <url>      # $HOME / ~/project / ~/agents 下直接落位
-```
-
-收益：项目可预测、可整体备份 / 迁移；worktree 落在 `<workspace>/projects/.worktrees/` 后，
-`git-common-dir` 也在 workspace 内，默认 `workspace-write` 沙箱即可 commit，无须降级 `delivery_mode=workspace`。
-细则见 `dev-worktree-git`（真源 `templates/dev-worktree-git/SKILL.md`）。
-
-## 开发
-
-```bash
-pnpm typecheck     # tsc --noEmit
-pnpm test          # vitest（58 个用例：契约 / 种子 / references / 校验 / 固件注册 / 真实 AgentHost 集成 / 安装后自检）
-pnpm build         # 编译到 dist-server/ 并复制 cordis.patch.yml（内含 typecheck）
-pnpm verify:install # 13 项安装后自检（DSH_HOME 已设置时校验安装态资产）
-```
-
-改种子请先改 `templates/<name>/`（含 `references/*.md`），再同步 `src/seeds.ts`——
-测试会与 templates 逐字节比对，漂移会直接失败。
-
-> `pnpm test` 带 `--passWithNoTests`：0 个用例也会退出 0。成功判据是 **58 passed**，不是只看退出码。
-
-## 8 个领域 Skill（运行态 11 条）
-
-运行时分三层，安装后 `skills.list()` 应为 **11 条**：
-
-| 层 | 条数 | 来源 | 是否可进化 |
-|----|------|------|------------|
-| 可进化种子 | 6 | `assets.bootstrap` 落到 `<assets>/skills/` | 是 |
-| 领域固件 | 2 | `src/plugin.ts` 调 `ctx.skills.register()` 静态注册 | 否 |
-| core 固件 | 3 | core 自己注册：`rsi-evolution` / `skill-authorship` / `task-authorship` | 否 |
-
-`skills.list()` 断言 11 条 = 5 + 3 + 3；少任何一层都说明安装或注册不完整。
-
-| 类型 | 名称 | 作用 |
-|------|------|------|
-| 固件 | `dev-dispatch-contract` | 派发上下文卡片、preset、超时与返回格式 |
-| 固件 | `dev-quality-gate` | 三维质量闸门与证据门槛 |
-| 固件 | `dev-container` | 在项目级开发容器中构建 / 测试 / 运行；无配置时按依赖清单自动生成 |
-| 可进化 | `dev-worktree-git` | worktree / 分支 / commit 规范 |
-| 可进化 | `dev-test-strategy` | 五栈检测与路由（具体命令在 `references/`） |
-| 可进化 | `dev-role-developer` | Developer 角色规范 |
-| 可进化 | `dev-role-tester` | Tester 角色规范 |
-| 可进化 | `dev-retro` | 复盘与单变量改进 |
-
-固件 Skill 随包发布：`pack.firmwareSkills` 是声明（契约校验 / 文档的真源），运行时由
-`src/plugin.ts` 在 `agentHost.install()` 之后用 `ctx.skills.register()` **静态注册**
-（core 只把 `firmwareSkills` 用于重名冲突校验，不注册其中的 markdown）；领域卸载时反注册。
-5 个可进化 Skill 由 `assets.bootstrap` 落到 `assets/skills/`，之后可由进化引擎改写。
-Leader 的角色规则**不在固件里**：它是 `src/pack.ts` 的 `LEADER_PERSONA`，常驻主会话 system prompt。
-固件 Skill 不得占用 core 保留名（`rsi-evolution` / `skill-authorship` / `task-authorship`）。
-
-## 五栈 references
-
-`dev-test-strategy` 只做栈检测与路由，具体命令在安装后的
-`assets/skills/dev-test-strategy/references/` 下（真源为 `templates/dev-test-strategy/references/`）：
-
-| 文件 | 技术栈 | 检测信号 |
-|------|--------|----------|
-| `go.md` | Go | `go.mod` |
-| `node-ts.md` | Node / TypeScript | `package.json` + `tsconfig.json`（无前端框架） |
-| `react.md` | React | `react` 依赖 + `vite.config.*` / `next.config.*` |
-| `harmony-arkts.md` | 鸿蒙 ArkTS | `build-profile.json5` / `oh-package.json5` |
-| `python.md` | Python | `pyproject.toml` / `requirements.txt` |
-
-每个文件统一包含：检测信号、环境准备、构建、静态检查、测试、最小样例、常见坑、失败判据。
-references 随种子同批注册（同一个 commit）；`validate` 只放行 `skills/<dir>/references/<file>.md`
-这一层，`..`、绝对路径、非 `.md` 与嵌套目录一律拒绝。
-
-## 已知限制
-
-- `dsh --profile <p> --dump-config-schema` 对含嵌套 `plugins` 的 preset 会在 stderr 报
-  `unrecognized Loader tree carrier`（3 个 preset 各一条）并以退出码 1 结束；schema 本身
-  仍会完整打印到 stdout。spike 同样表现，属 dsh 自身限制；`--dump-config` 正常（退出码 0），
-  日常自检请用后者。
-- 自检脚本里 `agentHost.active.toolNames` 仍为空数组（本领域零工具），文件 / 命令 /
-  技能 / 待办 / 子 agent 能力全部来自 preset 组合的 dsh 内置插件。
-- `await agentHost.skillProviderReady` 只表示 provider 已就绪，不保证 `skills.list()` 立刻
-  包含全部种子：web profile 下首次 `list()` 实测 **6 条**（3 个 core 固件 + 3 个领域固件），
-  约 1s 后才是 11 条（`rsi-skills` 首轮扫描滞后）。断言请**轮询到条数稳定**（例如连续两次
-  读到 11 条）再判定，不要只取首次结果。
-
-## 3 个 preset
+### 3 个 preset
 
 | preset | 用途 | 工具面 |
 |--------|------|--------|
-| `dev-leader` | 主会话默认 preset / 调度者（含 `subagent`，限深 1；人设来自领域包） | fs / bash / skill / todo / subagent |
-| `dev-developer` | 编码执行者（写操作必须显式指定） | fs / bash / skill / todo |
-| `dev-tester` | 验证执行者 | fs / bash / skill / todo |
+| `dev-leader` | 主会话默认 preset / 调度者 | fs / bash / skill / todo / subagent / subagent-control / list-agents |
+| `dev-developer` | 编码执行者（写操作必须显式指定） | fs / bash / skill / todo + Developer persona |
+| `dev-tester` | 验证执行者 / 子 agent 漏传兜底 | fs / bash / skill / todo + Tester persona |
 
-档位语义（**两条独立路径，不要混**）：
+两条独立路径，不要混：
 
-- `agent-preset-registry.default: dev-leader` —— 决定**主会话**用哪个 preset。
-  主会话必须是 Leader；把它改成 `dev-tester` / `dev-developer` 会让主会话直接变成子 agent 人设；
-- `tool-subagent.agentPreset: dev-tester` —— 只影响**子 agent 漏传 `agent_preset`** 时的兜底
-  （`preset-dev-leader` 内与顶层补丁共两处，subagent 工具解析时不看 `registry.default`）。
-  选偏只读角色，是因为漏传时不应落到可写角色；**写操作必须由 Leader 显式传
-  `dev-developer`**，不要依赖默认值；
-- `allowedAgentPresets: [dev-developer, dev-tester]`、`maxDepth: 1` —— 只影响**可派发目标**：
-  Leader 只能派给 Developer / Tester，子 agent 无法再向下派发（因此 `agent_preset` 枚举只有
-  这两项；`dev-leader` 仍注册在 registry 里，但**不**作为可派发目标）；
-- **关于子 preset 的 `subagent`**：Developer / Tester 的 preset 里**不额外挂载**
-  `subagent`，但顶层补丁（`tool-subagent`）会让该工具在子 preset 的 scope 中可见；
-  真正拦住递归的是 `maxDepth: 1`，而不是「工具不存在」。
-- `dev-developer` / `dev-tester` 的 `persona` 是 `complete: true`，各自携带 15–25 行单任务流程骨架
-  （Developer：对齐 → worktree → 环境 → 编码 → 自测 → 交付；Tester：对齐 → 拉取交付物 → 独立环境 →
-  逐项验证 → 报告）；子 agent 的 system prompt 只保留自己的措辞，不含 Leader 的任何规则。
-  `dev-leader` **不挂 persona**，主会话人设由领域包的 `LEADER_PERSONA` 注入 `rsi-agent:persona`。
+- `agent-preset-registry.default: dev-leader` 决定**主会话** preset；
+- `tool-subagent.agentPreset: dev-tester` 只决定**子 agent 漏传 `agent_preset`** 时的兜底，出现在
+  `preset-dev-leader` 内与顶层补丁两处；写操作必须由 Leader 显式传 `dev-developer`；
+- `allowedAgentPresets: [dev-developer, dev-tester]` + `maxDepth: 1` 限制可派发目标与递归深度
+  （`dev-leader` 注册在 registry 中，但不是可派发目标）。
 
-## License
+## 迁移
 
-Apache-2.0
+### 从 0.1.x（依赖外部 agent core）升级到 0.2.0
+
+0.1.x 依赖外部 core 与资产目录，0.2.0 改为原生单包。升级步骤：
+
+1. **记录回滚点**：npm 上没有 0.1.x（实测 `npm view dsh-dev-domain` → 404），git 上原本也没有 tag；
+   本仓库已为 0.1.0 基线 `b5d0e06` 创建本地 annotated tag `v0.1.0`（未推送），回滚方式见下节。
+2. **移除旧 core**（profile 里仍装着时才需要）：`dsh plugin --profile <p> remove dsh-rsi-agent`；若
+   `$DSH_HOME/profiles/<p>/package.json` 的 `dsh.profile.bundles` 里仍有该条目，一并手工删除后
+   `pnpm install`。
+3. **安装本版本**：当前用本地链接（需先 `pnpm build`）：
+
+   ```bash
+   dsh plugin --profile <p> add link:$PWD
+   ```
+
+   发布后可按版本安装：`dsh plugin --profile <p> add dsh-dev-domain@0.2.0`（发布后可用）。
+4. 按「装完核对组合树」检查 `dev-domain` 与 3 个 preset 是否都在，再跑 `pnpm verify:install`。
+
+### 资产目录：不迁移、不读取
+
+旧版本在 `<DSH_HOME>/.dsh-rsi-agent/dev/assets` 下的 Skill 资产**不迁移、不读取**：
+
+- 0.2.0 的 Skill 只来自包内 `skills/`，不会扫描该目录，也不会把其中内容合并进来；
+- 其中存在的手工改动（包括对旧 Skill 的修改、新增文件）**一律丢弃**，不要指望升级后仍然生效；
+- 需要保留的内容请自行备份到包外；确认无用后可手工删除该目录，本包不会自动删除它。
+
+### 回滚到 0.1.0
+
+npm 上没有 0.1.0（`npm view dsh-dev-domain` → 404），回滚只能在本地按 tag 进行：
+
+```bash
+# 1) 检出 0.1.0 基线（本地 annotated tag v0.1.0 → b5d0e06，未推送）
+git worktree add /tmp/old v0.1.0
+
+# 2) 装回旧版本（实测安装本身 exit 0）
+dsh plugin --profile <p> add link:/tmp/old
+
+# 3) 旧版本的 patch 会插入 dsh-rsi-agent，必须把它一起装回
+dsh plugin --profile <p> add dsh-rsi-agent@0.1.x   # 发布后可用
+```
+
+实测边界：
+
+- 第 1、2 步当前可执行：`git worktree add /tmp/old v0.1.0` 与 `dsh plugin add link:/tmp/old` 均 exit 0；
+- 只做第 1、2 步的 profile 会在启动时找不到 `dsh-rsi-agent`（`ERR_MODULE_NOT_FOUND`），第 3 步是回滚必需项；
+- `dsh-rsi-agent` 当前不在 registry（`npm view dsh-rsi-agent` → 404），第 3 步**发布后可用**；
+  在那之前只能从本地 dsh-rsi-agent 仓库 `dsh plugin --profile <p> add link:<该仓库路径>`。
+
+回滚只影响包与 profile 依赖；旧资产目录若已被手工删除，旧版本会重新 bootstrap 一份初始种子——这也是
+为什么要先备份。
