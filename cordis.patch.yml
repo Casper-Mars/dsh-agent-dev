@@ -1,19 +1,15 @@
-# dsh-dev-domain bundle patch —— 领域包自带「core + domain + presets」三层
+# dsh-dev-domain bundle patch —— 领域包自带「domain + presets」两层
 #
 # 只需 `dsh plugin --profile <p> add <本包>`：pnpm 装好本包后，bundle patch 一次
-# 插入 rsi-agent、本领域与 3 个 agent preset，profile 里同时得到 agentHost
-# （提供方）、dev 领域（人设 + 资产 + 工具面）与子 agent 组合。
+# 插入本领域与 3 个 agent preset，profile 里得到 dev 领域（人设 + 资产 + 工具面）
+# 与子 agent 组合。人设由插件在根会话上原生注入，不再依赖外部 agentHost。
 #
-# id/name/inject 必须与两边 src/plugin.ts 逐项一致。
+# id/name/inject 必须与 src/plugin.ts 逐项一致。
 
 - insert:
-    - id: rsi-agent
-      name: dsh-rsi-agent
-      inject: ['tools', 'skills', 'fs']
-
     - id: dev-domain
       name: dsh-dev-domain
-      inject: ['agentHost']
+      inject: ['skills', 'agents']
 
     - id: agent-preset-registry
       name: '@deepseek-ai/dsh-agent-preset-registry'
@@ -28,9 +24,8 @@
         default: dev-leader
 
     # dev-leader：既是主会话的默认 preset（registry.default），也是可派发的调度者。
-    # 【人设来源】主会话人设由领域包 `LEADER_PERSONA` 注入 `rsi-agent:persona`
-    # （dsh-rsi-agent src/service.ts 的 DomainPack.persona 通道）；本 preset 不再
-    # 挂 persona，避免 `complete: true` 的 shadow 行为把领域人设盖掉。
+    # 【人设来源】主会话人设由本包插件在根会话上原生注入（`systemPrompt` 服务），
+    # 因此本 preset 不挂 persona，也不做 complete 覆盖，避免把领域人设盖掉。
     - id: preset-dev-leader
       name: '@deepseek-ai/dsh-agent-preset'
       config:
@@ -61,6 +56,12 @@
               agentPreset: dev-tester
               allowedAgentPresets: [dev-developer, dev-tester]
               maxDepth: 1
+          # 子 agent 后续控制面：send_message / interrupt_agent
+          - id: tool-subagent-control
+            name: '@deepseek-ai/dsh-tool-subagent-control'
+          # 子 agent 列表查询：list_agents（同包子路径导出）
+          - id: tool-subagent-list-agents
+            name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
 
     - id: preset-dev-developer
       name: '@deepseek-ai/dsh-agent-preset'
@@ -97,7 +98,6 @@
                 - 不越过卡片范围改其他任务 / 主仓库 / 其他 worktree。
                 - 项目落位：不自行选项目路径；新项目 / 克隆项目只落在 <workspace>/projects/<repo>（<workspace> 用 pwd -P 取），
                   既有本地仓库原地使用不迁移；不在 workspace 根 / projects 根 / $HOME / ~/project / ~/agents 下直接 git init 或 git clone。
-              complete: true
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-bash
@@ -145,7 +145,6 @@
                 - 不省略失败的原始错误输出；不把 exit 0 当行为正确的证据。
                 - 不把新需求混进验证结论，发现新需求单独提给 Leader。
                 - 项目落位：不自行选路径、不建项目目录；只在卡片给定的 worktree 或 /tmp/verify-* 副本内工作。
-              complete: true
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-bash
