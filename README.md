@@ -87,6 +87,31 @@ npm pack --dry-run    # 检查发布内容清单（必须在 build 之后执行�
 node scripts/verify-install.mjs --assets /path/to/skills
 ```
 
+## 发布
+
+发布入口统一收敛在仓库根的 `Makefile`（`make help` 可查全部目标），不要手工拼命令：
+
+| 命令 | 作用 |
+|------|------|
+| `make check` | 本地验收：build → test → verify → pack（等价于上面的五连，少了单独的 `typecheck`，它已包含在 `build` 里） |
+| `make stage-dry` | 演练暂存：`pnpm stage publish --access public --dry-run`，不上传任何东西 |
+| `make publish` | 先跑 `check`，全部通过后再 `pnpm stage publish --access public` |
+
+`make publish` 有两道前置保护，任一不满足直接报错退出：
+
+- **工作区必须干净**：`git status --porcelain` 非空就拒绝（先提交或清理再发）；
+- **必须在 `main` 分支**：其他分支默认拒绝，确需时用 `ALLOW_BRANCH=1 make publish` 显式跳过。
+
+`pnpm stage` 只是把包**暂存**到 registry，不会立刻对外发布。确认清单无误后再走两步：
+
+```bash
+pnpm stage list                 # 查看暂存记录与 stage-id
+pnpm stage approve <stage-id>   # 批准发布（含 2FA）
+```
+
+当前**未发布 npm**：`npm view dsh-dev-domain` 仍是 404；在那之前装包只能走本地
+`dsh plugin --profile <p> add link:$PWD`。
+
 ## 目录
 
 ```text
