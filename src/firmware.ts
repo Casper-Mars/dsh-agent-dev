@@ -30,6 +30,8 @@ import type { SkillRegistration } from '@deepseek-ai/dsh-skill'
  */
 export interface FirmwareSkill {
   readonly name: string
+  /** 声明侧的一句话描述（缺省时用 frontmatter.description）。 */
+  readonly description?: string
   readonly dir?: string
   readonly markdown?: string
 }
@@ -162,7 +164,7 @@ export function buildFirmwareSkillRegistration(skill: FirmwareSkill): SkillRegis
 
   return {
     name: skill.name,
-    description: parsed.description,
+    description: skill.description ?? parsed.description,
     whenToUse: parsed.whenToUse,
     path,
     source: 'runtime',
