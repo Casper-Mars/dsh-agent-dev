@@ -1,30 +1,39 @@
 /**
- * 安装后自检（`pnpm verify:install`）：确认 5 个可进化种子 Skill、5 个 references、3 个固件
- * Skill 可见，缺失时非 0 退出。检查 `<资产根>/<seed>/SKILL.md`、
- * `<资产根>/dev-test-strategy/references/<stack>.md`、`<固件根>/<firmware>/SKILL.md`
- * （对齐 `src/pack.ts` / `src/firmware.ts`，只读不落盘）。
+ * 包内资产自检（`pnpm verify:install`）：确认本包 `skills/` 下 8 个领域 Skill 的
+ * `SKILL.md` 与 `dev-test-strategy/references/` 的 5 个栈文档齐全且非空。
  *
- * 资产根来源：`--assets` > `--home` > `DSH_HOME` > 仓库 `templates/`；前三者任一显式给出
- * （`DSH_HOME` 非空即算）而目录不存在 → 退出码 2，**绝不回退**（否则未安装会被判通过）。
- * 退出码 0 全 PASS / 1 有 FAIL / 2 参数或环境错误。核心逻辑均为导出纯函数，`main` 仅在作为
- * CLI 直接执行时运行，导入本模块不执行 main、不 `process.exit`。
+ * 检查目标是**包内**资产，与是否安装到 profile 无关：未安装状态下也必须全 PASS。
+ * 旧版的「安装目录」硬编码与 `--home` / 环境变量默认推导已随任务-05 删除；
+ * `--assets <dir>` 只用于手工核查旧资产目录，不再是默认路径。
+ *
+ * 退出码：全 PASS 为 0，有 FAIL 为 1，参数 / 环境错误（目录不存在、未知参数）为 2。
+ * 核心逻辑均为导出纯函数，`main` 仅在直接执行本文件时运行；导入本模块不跑 main、
+ * 不 `process.exit`，便于单测直接调用。
  */
 import { realpathSync, statSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
-/** 期望清单：唯一真源，测试直接断言。 */
-export const EXPECTED_SEED_SKILLS = ['dev-worktree-git', 'dev-test-strategy', 'dev-role-developer', 'dev-role-tester', 'dev-retro']
+/** 期望的 8 个领域 Skill（与 `src/domain.ts` 的 DEV_DOMAIN.skills 一致）。 */
+export const EXPECTED_SKILLS = [
+  'dev-container',
+  'dev-dispatch-contract',
+  'dev-quality-gate',
+  'dev-retro',
+  'dev-role-developer',
+  'dev-role-tester',
+  'dev-test-strategy',
+  'dev-worktree-git',
+]
+
+/** `dev-test-strategy/references/` 下期望的 5 个栈文档（文件名去掉 `.md`）。 */
 export const EXPECTED_REFERENCE_STACKS = ['go', 'harmony-arkts', 'node-ts', 'python', 'react']
-export const EXPECTED_FIRMWARE_SKILLS = ['dev-dispatch-contract', 'dev-quality-gate', 'dev-container']
-export const EXPECTED_CHECK_COUNT = EXPECTED_SEED_SKILLS.length + EXPECTED_REFERENCE_STACKS.length + EXPECTED_FIRMWARE_SKILLS.length
 
-/** dsh 已安装资产相对 home 的固定路径；来源 → CLI / 环境变量名（错误信息用）。 */
-const INSTALLED_RELATIVE = path.join('.dsh-rsi-agent', 'dev', 'assets', 'skills')
-const SOURCE_LABEL = { assets: '--assets', home: '--home', env: 'DSH_HOME' }
+/** 检查项总数：8 个 SKILL.md + 5 个 references。 */
+export const EXPECTED_CHECK_COUNT = EXPECTED_SKILLS.length + EXPECTED_REFERENCE_STACKS.length
 
-/** 目录存在性（显式来源缺失 → 退出码 2 用）。 */
+/** 目录存在性判断（环境错误 → 退出码 2 用）。 */
 const isDir = (target) => {
   try {
     return statSync(target).isDirectory()
@@ -32,9 +41,10 @@ const isDir = (target) => {
     return false
   }
 }
+
 const describeError = (error) => (error instanceof Error ? error.message : String(error))
 
-/** 校验一个「必须存在、是普通文件、非空」的文件，返回检查项。 */
+/** 校验一个「必须存在、是普通文件、非空」的文件，返回单个检查项。 */
 function check(kind, name, file) {
   let reason = '缺少文件'
   try {
@@ -46,26 +56,45 @@ function check(kind, name, file) {
   return { kind, name, path: file, ok: reason === '', reason }
 }
 
-/** 执行 13 项自检（5 + 5 + 3），不抛错、不写盘；返回 `checks/passed/failed/ok` 与回显信息。 */
-export function verifyInstall({ assetsRoot, firmwareRoot, assetsSource = 'assets' }) {
-  if (!assetsRoot || !firmwareRoot) throw new TypeError('verifyInstall 需要 assetsRoot 与 firmwareRoot')
+/**
+ * 执行 13 项自检（8 个 Skill + 5 个 references），不抛错、不写盘。
+ *
+ * @param {{ skillsRoot: string, source?: 'package' | 'assets' }} targets
+ * @returns {{ skillsRoot: string, source: string, checks: object[], passed: number, failed: number, ok: boolean }}
+ */
+export function verifyInstall({ skillsRoot, source = 'package' }) {
+  if (typeof skillsRoot !== 'string' || skillsRoot === '') {
+    throw new TypeError('verifyInstall 需要非空的 skillsRoot')
+  }
   const checks = [
-    ...EXPECTED_SEED_SKILLS.map((name) => check('seed', name, path.join(assetsRoot, name, 'SKILL.md'))),
-    ...EXPECTED_REFERENCE_STACKS.map((stack) => check('reference', stack, path.join(assetsRoot, 'dev-test-strategy', 'references', `${stack}.md`))),
-    ...EXPECTED_FIRMWARE_SKILLS.map((name) => check('firmware', name, path.join(firmwareRoot, name, 'SKILL.md'))),
+    ...EXPECTED_SKILLS.map((name) => check('skill', name, path.join(skillsRoot, name, 'SKILL.md'))),
+    ...EXPECTED_REFERENCE_STACKS.map((stack) =>
+      check('reference', stack, path.join(skillsRoot, 'dev-test-strategy', 'references', `${stack}.md`)),
+    ),
   ]
   const passed = checks.filter((item) => item.ok).length
-  return { assetsRoot, firmwareRoot, assetsSource, checks, passed, failed: checks.length - passed, ok: passed === checks.length }
+  return {
+    skillsRoot,
+    source,
+    checks,
+    passed,
+    failed: checks.length - passed,
+    ok: passed === checks.length,
+  }
 }
 
 /** 报告 → 文本行：`PASS` / `FAIL` 行只对应检查项（恰好 13 条），其余以 `#` 开头，便于 grep 计数。 */
 export function formatReport(result) {
-  const lines = [`# verify-install：assets=${result.assetsRoot} firmware=${result.firmwareRoot} 来源=${result.assetsSource}`]
-  if (result.assetsSource === 'templates') {
-    lines.push(`# 仓库模板回退（未设置 --assets / --home / DSH_HOME）：${result.assetsRoot}`)
+  const lines = [`# verify-install：skills=${result.skillsRoot} 来源=${result.source}`]
+  if (result.source === 'assets') {
+    lines.push(`# 手工资产目录核查（--assets）：${result.skillsRoot}`)
   }
   for (const item of result.checks) {
-    lines.push(item.ok ? `PASS ${item.kind} ${item.name} ${item.path}` : `FAIL ${item.kind} ${item.name} ${item.reason}：${item.path}`)
+    lines.push(
+      item.ok
+        ? `PASS ${item.kind} ${item.name} ${item.path}`
+        : `FAIL ${item.kind} ${item.name} ${item.reason}：${item.path}`,
+    )
   }
   lines.push(`# 结果：${result.passed}/${result.checks.length} 通过，退出码 ${exitCode(result)}`)
   return lines
@@ -76,37 +105,31 @@ export function exitCode(result) {
   return result.ok ? 0 : 1
 }
 
-/** 解析资产根 / 固件根（只推导路径、不检查存在性），返回绝对路径 + 来源标记。 */
-export function resolveInstallTargets({ assets, home, firmware, env = {}, repoRoot, cwd = process.cwd() }) {
-  const dshHome = typeof env.DSH_HOME === 'string' ? env.DSH_HOME.trim() : ''
-  const installedAt = (dir) => path.join(path.resolve(cwd, dir), INSTALLED_RELATIVE)
-  const [assetsRoot, assetsSource] = assets
-    ? [path.resolve(cwd, assets), 'assets']
-    : home
-      ? [installedAt(home), 'home']
-      : dshHome
-        ? [installedAt(dshHome), 'env']
-        : [path.join(repoRoot, 'templates'), 'templates']
-  const firmwareRoot = firmware ? path.resolve(cwd, firmware) : path.join(repoRoot, 'skills')
-  return { assetsRoot, assetsSource, firmwareRoot, firmwareSource: firmware ? 'flag' : 'repo' }
+/**
+ * 解析待检查的 skills 根目录（只推导路径、不检查存在性）。
+ *
+ * 默认 = `<包根>/skills`；`--assets <dir>` 时 = `<cwd>/<dir>`（手工核查用）。
+ */
+export function resolveSkillsRoot({ assets, repoRoot, cwd = process.cwd() }) {
+  if (assets) return { skillsRoot: path.resolve(cwd, assets), source: 'assets' }
+  return { skillsRoot: path.join(repoRoot, 'skills'), source: 'package' }
 }
 
-/** 解析命令行参数（`--flag value`）；非法参数抛错，由 main 转成退出码 2。 */
+/** 解析命令行参数（仅支持 `--assets <dir>`）；非法参数抛错，由 main 转成退出码 2。 */
 function parseArgs(argv) {
   const options = {}
-  const valued = new Set(['--assets', '--home', '--firmware'])
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index]
-    if (!valued.has(flag)) throw new Error(`未知参数 "${flag}"（可用：--assets / --home / --firmware）`)
+    if (flag !== '--assets') throw new Error(`未知参数 "${flag}"（可用：--assets <dir>）`)
     const value = argv[index + 1]
     if (!value || value.startsWith('--')) throw new Error(`参数 "${flag}" 缺少取值`)
-    options[flag.slice(2)] = value
+    options.assets = value
     index += 1
   }
   return options
 }
 
-/** CLI 主流程：解析参数 → 解析资产根 → 校验 → 打印报告；环境错误只输出一行含路径信息（无堆栈）。 */
+/** CLI 主流程：解析参数 → 定位 skills 根 → 校验 → 打印报告。环境错误只输出一行（无堆栈）。 */
 export function main(argv) {
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
   let options
@@ -116,17 +139,14 @@ export function main(argv) {
     console.error(`[verify-install] ${describeError(error)}`)
     return 2
   }
-  const targets = resolveInstallTargets({ ...options, env: process.env, repoRoot })
-  // 显式来源缺失时绝不回退：安装未完成必须暴露为环境错误，而不是「全 PASS」的假绿。
-  const assetsLabel = targets.assetsSource === 'templates' ? '仓库模板目录' : `${SOURCE_LABEL[targets.assetsSource]} 指定的资产目录`
-  if (!isDir(targets.assetsRoot)) {
-    console.error(`[verify-install] ${assetsLabel}不存在：${targets.assetsRoot}`)
+
+  const targets = resolveSkillsRoot({ ...options, repoRoot })
+  if (!isDir(targets.skillsRoot)) {
+    const label = targets.source === 'assets' ? '--assets 指定的目录' : '包内 skills 目录'
+    console.error(`[verify-install] ${label}不存在：${targets.skillsRoot}`)
     return 2
   }
-  if (!isDir(targets.firmwareRoot)) {
-    console.error(`[verify-install] 固件 Skill 目录不存在：${targets.firmwareRoot}`)
-    return 2
-  }
+
   try {
     const result = verifyInstall(targets)
     for (const line of formatReport(result)) console.log(line)
@@ -137,8 +157,11 @@ export function main(argv) {
   }
 }
 
-/** CLI 入口守卫：`argv[1]` 可能经符号链接（`/tmp`、挂载盘），而 `import.meta.url` 已是 realpath，
- * 必须比较 realpath，否则会「没跑 main 却 exit 0」（静默假绿）；realpath 失败退回 inode / 字符串比较。 */
+/**
+ * CLI 入口守卫：`argv[1]` 可能经符号链接（`/tmp`、挂载盘），而 `import.meta.url` 已是
+ * realpath，必须比较 realpath，否则会「没跑 main 却 exit 0」（静默假绿）；
+ * realpath 失败退回 inode / 字符串比较。
+ */
 function isDirectRun() {
   const invoked = process.argv[1]
   if (invoked === undefined) return false

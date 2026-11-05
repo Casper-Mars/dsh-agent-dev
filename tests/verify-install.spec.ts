@@ -1,153 +1,223 @@
 /**
- * `scripts/verify-install.mjs` 单测（夹具全为 `mkdtempSync` 临时目录，不依赖真实 `DSH_HOME`）：
- * 全通过 13 条 PASS、缺种子 / 空 reference / 缺固件、exitCode、formatReport、解析优先级、
- * CLI 退出码 2（`--assets` / `DSH_HOME`）、templates 回退、符号链接调用不静默 exit 0。
+ * `scripts/verify-install.mjs` 单测。
+ *
+ * 覆盖：默认检查**包内** `skills/`（未安装状态也全 PASS）、缺 SKILL.md / 缺
+ * references / 空文件、`--assets` 手工路径、退出码 0 / 1 / 2、符号链接调用不
+ * 静默 exit 0。夹具全部落在 `mkdtempSync` 临时目录，不读写真实 profile。
  */
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   EXPECTED_CHECK_COUNT,
-  EXPECTED_FIRMWARE_SKILLS,
   EXPECTED_REFERENCE_STACKS,
-  EXPECTED_SEED_SKILLS,
+  EXPECTED_SKILLS,
   exitCode,
   formatReport,
-  resolveInstallTargets,
+  main,
+  resolveSkillsRoot,
   verifyInstall,
 } from '../scripts/verify-install.mjs'
+
 const SCRIPT = fileURLToPath(new URL('../scripts/verify-install.mjs', import.meta.url))
+const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
 const temporaryRoots: string[] = []
+
 function writeFile(target: string, content: string): void {
   mkdirSync(dirname(target), { recursive: true })
   writeFileSync(target, content, 'utf8')
 }
 
-/** 完整夹具：5 种子 + 5 references + 3 固件。 */
-function makeFixture(): { root: string; assetsRoot: string; firmwareRoot: string } {
+/** 完整夹具：8 个 SKILL.md + 5 个 references，模拟一份合格资产目录。 */
+function makeFixture(): { root: string; skillsRoot: string } {
   const root = mkdtempSync(join(tmpdir(), 'verify-install-'))
   temporaryRoots.push(root)
-  const assetsRoot = join(root, 'assets')
-  const firmwareRoot = join(root, 'firmware')
-  for (const name of EXPECTED_SEED_SKILLS) writeFile(join(assetsRoot, name, 'SKILL.md'), `# ${name}\n`)
-  for (const stack of EXPECTED_REFERENCE_STACKS) writeFile(join(assetsRoot, 'dev-test-strategy', 'references', `${stack}.md`), `# ${stack}\n`)
-  for (const name of EXPECTED_FIRMWARE_SKILLS) writeFile(join(firmwareRoot, name, 'SKILL.md'), `# ${name}\n`)
-  return { root, assetsRoot, firmwareRoot }
+  const skillsRoot = join(root, 'skills')
+  for (const name of EXPECTED_SKILLS) writeFile(join(skillsRoot, name, 'SKILL.md'), `# ${name}\n`)
+  for (const stack of EXPECTED_REFERENCE_STACKS) {
+    writeFile(join(skillsRoot, 'dev-test-strategy', 'references', `${stack}.md`), `# ${stack}\n`)
+  }
+  return { root, skillsRoot }
 }
 
 /** 报告里以 PASS / FAIL 开头的行（检查项行）。 */
 const checkLines = (lines: string[]): string[] => lines.filter((line) => /^(PASS|FAIL)/.test(line))
 
-/** 跑 CLI（默认沿用当前环境，便于按用例覆盖 / 删除 DSH_HOME）。 */
-const runCli = (args: string[], env: NodeJS.ProcessEnv = {}): ReturnType<typeof spawnSync> =>
-  spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', env: { ...process.env, ...env } })
+const runCli = (args: string[], cwd = REPO_ROOT): ReturnType<typeof spawnSync> =>
+  spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', cwd })
 
 afterEach(() => {
-  while (temporaryRoots.length > 0) rmSync(temporaryRoots.pop() as string, { recursive: true, force: true })
+  while (temporaryRoots.length > 0) {
+    rmSync(temporaryRoots.pop() as string, { recursive: true, force: true })
+  }
 })
 
-describe('verifyInstall', () => {
-  it('完整夹具 → 13 条 PASS、ok=true、退出码 0，报告含全部名称', () => {
-    const result = verifyInstall(makeFixture())
-    const report = formatReport(result)
-    const text = report.join('\n')
+describe('期望常量', () => {
+  it('8 个 Skill + 5 个 references = 13 项', () => {
+    expect(EXPECTED_SKILLS).toHaveLength(8)
+    expect(new Set(EXPECTED_SKILLS).size).toBe(8)
+    expect(EXPECTED_REFERENCE_STACKS).toHaveLength(5)
     expect(EXPECTED_CHECK_COUNT).toBe(13)
-    expect([result.checks.length, result.passed, result.failed, exitCode(result)]).toEqual([13, 13, 0, 0])
-    expect(checkLines(report)).toHaveLength(13)
-    expect(checkLines(report).every((line) => line.startsWith('PASS'))).toBe(true)
-    for (const name of EXPECTED_SEED_SKILLS) expect(text).toContain(`seed ${name}`)
-    for (const stack of EXPECTED_REFERENCE_STACKS) expect(text).toContain(`reference ${stack}`)
-    for (const name of EXPECTED_FIRMWARE_SKILLS) expect(text).toContain(`firmware ${name}`)
+  })
+})
+
+describe('verifyInstall（包内资产）', () => {
+  it('默认检查包内 skills/：未安装状态下 13 条全 PASS、退出码 0', () => {
+    const targets = resolveSkillsRoot({ repoRoot: REPO_ROOT })
+    expect(targets.source).toBe('package')
+    expect(targets.skillsRoot).toBe(join(REPO_ROOT, 'skills'))
+
+    const result = verifyInstall(targets)
+    expect([result.checks.length, result.passed, result.failed]).toEqual([13, 13, 0])
+    expect(exitCode(result)).toBe(0)
+    expect(result.source).toBe('package')
+
+    const reports = checkLines(formatReport(result))
+    expect(reports).toHaveLength(13)
+    expect(reports.every((line) => line.startsWith('PASS'))).toBe(true)
   })
 
-  /** 三类失败：破坏夹具后应恰好 1 条 FAIL（带路径），其余 12 条 PASS。 */
-  const dropDir = (dir: string): string => (rmSync(dir, { recursive: true, force: true }), join(dir, 'SKILL.md'))
-  const emptyFile = (file: string): string => (writeFileSync(file, '', 'utf8'), file)
-  const failureCases = [
-    { label: '缺 1 个种子目录', kind: 'seed', name: EXPECTED_SEED_SKILLS[0], mutate: ({ assetsRoot }: { assetsRoot: string }) => dropDir(join(assetsRoot, EXPECTED_SEED_SKILLS[0])) },
-    {
-      label: '置空 1 个 reference',
-      kind: 'reference',
-      name: EXPECTED_REFERENCE_STACKS[0],
-      mutate: ({ assetsRoot }: { assetsRoot: string }) => emptyFile(join(assetsRoot, 'dev-test-strategy', 'references', `${EXPECTED_REFERENCE_STACKS[0] as string}.md`)),
-    },
-    { label: '缺 1 个固件目录', kind: 'firmware', name: EXPECTED_FIRMWARE_SKILLS[0], mutate: ({ firmwareRoot }: { firmwareRoot: string }) => dropDir(join(firmwareRoot, EXPECTED_FIRMWARE_SKILLS[0])) },
-  ]
-
-  it.each(failureCases)('$label → 1 条 FAIL（带路径）+ 12 条 PASS，退出码 1', ({ kind, name, mutate }) => {
+  it('完整夹具 → 13 条 PASS，kind / name 顺序与清单一致', () => {
     const fixture = makeFixture()
-    const target = mutate(fixture)
-    const lines = checkLines(formatReport(verifyInstall(fixture)))
+    const result = verifyInstall({ skillsRoot: fixture.skillsRoot })
+    const actual = checkLines(formatReport(result)).map((line) => line.split(' ').slice(1, 3).join(':'))
+
+    expect(actual).toEqual([
+      ...EXPECTED_SKILLS.map((name: string) => `skill:${name}`),
+      ...EXPECTED_REFERENCE_STACKS.map((stack: string) => `reference:${stack}`),
+    ])
+    expect(new Set(actual).size).toBe(actual.length)
+    expect(exitCode(result)).toBe(0)
+  })
+
+  it('缺 1 个 SKILL.md → 1 条 FAIL（带路径）+ 12 条 PASS，退出码 1', () => {
+    const fixture = makeFixture()
+    const missing = join(fixture.skillsRoot, EXPECTED_SKILLS[0] as string, 'SKILL.md')
+    rmSync(dirname(missing), { recursive: true, force: true })
+
+    const result = verifyInstall({ skillsRoot: fixture.skillsRoot })
+    const lines = checkLines(formatReport(result))
     const fails = lines.filter((line) => line.startsWith('FAIL'))
-    expect(exitCode(verifyInstall(fixture))).toBe(1)
+
+    expect(exitCode(result)).toBe(1)
     expect(fails).toHaveLength(1)
-    expect(fails[0]).toContain(`${kind} ${name}`)
-    expect(fails[0]).toContain(target)
+    expect(fails[0]).toContain(`skill ${EXPECTED_SKILLS[0]}`)
+    expect(fails[0]).toContain(missing)
     expect(lines.filter((line) => line.startsWith('PASS'))).toHaveLength(12)
   })
 
-  it('formatReport 每条检查一项：无重复、无遗漏、顺序与清单一致', () => {
-    const actual = checkLines(formatReport(verifyInstall(makeFixture()))).map((line) => line.split(' ').slice(1, 3).join(':'))
-    const expected = [
-      ...EXPECTED_SEED_SKILLS.map((name: string) => `seed:${name}`),
-      ...EXPECTED_REFERENCE_STACKS.map((stack: string) => `reference:${stack}`),
-      ...EXPECTED_FIRMWARE_SKILLS.map((name: string) => `firmware:${name}`),
-    ]
-    expect(actual).toEqual(expected)
-    expect(new Set(actual).size).toBe(actual.length)
+  it('缺 1 个 reference → 1 条 FAIL', () => {
+    const fixture = makeFixture()
+    const missing = join(
+      fixture.skillsRoot,
+      'dev-test-strategy',
+      'references',
+      `${EXPECTED_REFERENCE_STACKS[0] as string}.md`,
+    )
+    rmSync(missing)
+
+    const result = verifyInstall({ skillsRoot: fixture.skillsRoot })
+    const fails = checkLines(formatReport(result)).filter((line) => line.startsWith('FAIL'))
+    expect(fails).toHaveLength(1)
+    expect(fails[0]).toContain(`reference ${EXPECTED_REFERENCE_STACKS[0]}`)
+    expect(fails[0]).toContain(missing)
+  })
+
+  it('空文件 → FAIL 原因为「文件为空」', () => {
+    const fixture = makeFixture()
+    const empty = join(fixture.skillsRoot, EXPECTED_SKILLS[1] as string, 'SKILL.md')
+    writeFileSync(empty, '', 'utf8')
+
+    const result = verifyInstall({ skillsRoot: fixture.skillsRoot })
+    const fail = checkLines(formatReport(result)).find((line) => line.startsWith('FAIL'))
+    expect(fail).toContain('文件为空')
+    expect(fail).toContain(empty)
+    expect(exitCode(result)).toBe(1)
+  })
+
+  it('skillsRoot 为空字符串 → TypeError（调用方错误）', () => {
+    expect(() => verifyInstall({ skillsRoot: '' })).toThrowError(TypeError)
   })
 })
 
-describe('resolveInstallTargets 优先级', () => {
-  const repoRoot = '/repo/root'
-
-  it('--assets > --home > DSH_HOME > templates，固件默认包根 skills/', () => {
-    const all = resolveInstallTargets({ assets: 'a', home: '/h', env: { DSH_HOME: '/e' }, repoRoot, cwd: '/cwd' })
-    expect([all.assetsRoot, all.assetsSource, all.firmwareRoot, all.firmwareSource]).toEqual(['/cwd/a', 'assets', '/repo/root/skills', 'repo'])
-    const byHome = resolveInstallTargets({ home: '/h', env: { DSH_HOME: '/e' }, repoRoot })
-    expect([byHome.assetsRoot, byHome.assetsSource]).toEqual(['/h/.dsh-rsi-agent/dev/assets/skills', 'home'])
-    const byEnv = resolveInstallTargets({ env: { DSH_HOME: '/e' }, repoRoot })
-    expect([byEnv.assetsRoot, byEnv.assetsSource]).toEqual(['/e/.dsh-rsi-agent/dev/assets/skills', 'env'])
-    const fallback = resolveInstallTargets({ env: {}, repoRoot })
-    expect([fallback.assetsRoot, fallback.assetsSource]).toEqual(['/repo/root/templates', 'templates'])
-    const flag = resolveInstallTargets({ firmware: 'fw', env: {}, repoRoot, cwd: '/cwd' })
-    expect([flag.firmwareRoot, flag.firmwareSource]).toEqual(['/cwd/fw', 'flag'])
+describe('resolveSkillsRoot', () => {
+  it('默认 = <repoRoot>/skills；--assets 相对 cwd 解析', () => {
+    expect(resolveSkillsRoot({ repoRoot: '/repo/root' })).toEqual({
+      skillsRoot: '/repo/root/skills',
+      source: 'package',
+    })
+    expect(resolveSkillsRoot({ assets: 'legacy/assets', repoRoot: '/repo/root', cwd: '/cwd' })).toEqual({
+      skillsRoot: '/cwd/legacy/assets',
+      source: 'assets',
+    })
+    expect(resolveSkillsRoot({ assets: '/abs/assets', repoRoot: '/repo/root' })).toEqual({
+      skillsRoot: '/abs/assets',
+      source: 'assets',
+    })
   })
 })
 
 describe('CLI 退出码', () => {
+  it('默认路径 → exit 0，13 条 PASS，无 FAIL', () => {
+    const child = runCli([])
+    const lines = checkLines(child.stdout.split('\n'))
+    expect(child.status).toBe(0)
+    expect(lines).toHaveLength(13)
+    expect(lines.every((line) => line.startsWith('PASS'))).toBe(true)
+    expect(child.stdout).not.toMatch(/^FAIL/m)
+  })
+
+  it('--assets 指向完整夹具 → exit 0，报告标注手工核查', () => {
+    const fixture = makeFixture()
+    const child = runCli(['--assets', fixture.skillsRoot])
+    const lines = checkLines(child.stdout.split('\n'))
+    expect(child.status).toBe(0)
+    expect(lines).toHaveLength(13)
+    expect(child.stdout).toContain('手工资产目录核查')
+    expect(child.stdout).toContain(fixture.skillsRoot)
+  })
+
+  it('--assets 指向不完整目录 → exit 1，FAIL 行带原因', () => {
+    const fixture = makeFixture()
+    rmSync(join(fixture.skillsRoot, EXPECTED_SKILLS[2] as string), { recursive: true, force: true })
+    const child = runCli(['--assets', fixture.skillsRoot])
+    expect(child.status).toBe(1)
+    expect(child.stdout).toMatch(/^FAIL skill /m)
+  })
+
   it.each([
-    ['--assets 指向不存在目录', (missing: string) => ['--assets', missing], false],
-    ['DSH_HOME 指向未安装 home', () => [], true],
-  ])('%s → exit 2，不回退 templates、无 PASS/FAIL 行、无堆栈', (label, argsOf, viaEnv) => {
+    ['--assets 指向不存在目录', (missing: string) => ['--assets', missing], '不存在'],
+    ['未知参数', () => ['--home', '/tmp'], '未知参数'],
+    ['--assets 缺少取值', () => ['--assets'], '缺少取值'],
+  ])('%s → exit 2，无 PASS/FAIL 行、无堆栈', (_label, argsOf, expected) => {
     const missing = join(makeFixture().root, 'does-not-exist')
-    const child = runCli((argsOf as (path: string) => string[])(missing), viaEnv ? { DSH_HOME: missing } : {})
+    const child = runCli((argsOf as (path: string) => string[])(missing))
     expect(child.status).toBe(2)
-    expect(child.stderr).toContain(label.split(' ')[0] as string)
-    expect(child.stderr).toContain(missing)
+    expect(child.stderr).toContain(expected)
     expect(child.stderr).not.toMatch(/\n\s+at /)
     expect(child.stdout).not.toMatch(/^(PASS|FAIL)/m)
-    expect(child.stdout).not.toContain('仓库模板回退')
   })
 
-  it('--assets / --home / DSH_HOME 全未给出 → 回退仓库 templates 并输出提示行', () => {
-    const env = { ...process.env }
-    delete env.DSH_HOME
-    const child = spawnSync(process.execPath, [SCRIPT], { encoding: 'utf8', env })
-    expect(child.status).toBe(0)
-    expect(child.stdout).toContain('仓库模板回退')
-    expect(checkLines(child.stdout.split('\n'))).toHaveLength(13)
+  it('main() 纯函数调用：参数错误返回 2，不退出进程', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      expect(main(['--nope'])).toBe(2)
+      expect(main(['--assets', join(makeFixture().root, 'nope')])).toBe(2)
+      expect(main([])).toBe(0)
+    } finally {
+      log.mockRestore()
+      error.mockRestore()
+    }
   })
 
-  it.skipIf(process.platform === 'win32')('经符号链接路径调用 → 仍跑满 13 项 PASS，不静默 exit 0', () => {
+  it.skipIf(process.platform === 'win32')('经符号链接调用 → 仍跑满 13 项 PASS，不静默 exit 0', () => {
     const link = join(makeFixture().root, 'verify-link.mjs')
     symlinkSync(SCRIPT, link)
-    const repo = fileURLToPath(new URL('..', import.meta.url))
-    const args = [link, '--assets', join(repo, 'templates'), '--firmware', join(repo, 'skills')]
-    const child = spawnSync(process.execPath, args, { encoding: 'utf8' })
+    const child = spawnSync(process.execPath, [link], { encoding: 'utf8', cwd: REPO_ROOT })
     const lines = checkLines(child.stdout.split('\n'))
     expect([child.status, child.stdout.length > 0, lines.length]).toEqual([0, true, 13])
     expect(lines.every((line) => line.startsWith('PASS'))).toBe(true)
