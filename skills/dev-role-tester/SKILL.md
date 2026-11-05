@@ -28,7 +28,7 @@ whenToUse: 需要查 Tester 的按栈命令、验收证据格式、缺陷分级�
 
 报告里看不到 `STACK=… REF=… DETECT=…`，或看不到从 ref 复制的命令 = 结论无效，直接打回。
 运行时没有 `skill` 工具时，改为用 `read` 读取包内 `skills/<name>/SKILL.md`（安装后位于
-`node_modules/dsh-dev-domain/skills/<name>/SKILL.md`），并在回报首行声明 `SKILL_TOOL=absent`。
+`node_modules/dsh-agent-dev/skills/<name>/SKILL.md`），并在回报首行声明 `SKILL_TOOL=absent`。
 
 ## 交付形态与验收位置
 

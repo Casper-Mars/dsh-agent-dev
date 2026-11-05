@@ -28,7 +28,7 @@ whenToUse: 需要查 Developer 的按栈命令、自检维度、禁止项与交�
 
 只加载 `dev-test-strategy` 而没读 ref、没抄命令 = 路由未完成，Leader / Tester 会直接打回。
 运行时没有 `skill` 工具时，改为用 `read` 读取包内 `skills/<name>/SKILL.md`（安装后位于
-`node_modules/dsh-dev-domain/skills/<name>/SKILL.md`，与 `dist-server/` 同级），并在回报首行声明
+`node_modules/dsh-agent-dev/skills/<name>/SKILL.md`，与 `dist-server/` 同级），并在回报首行声明
 `SKILL_TOOL=absent`。
 
 ## 按栈命令

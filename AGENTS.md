@@ -4,7 +4,7 @@
 
 ## 1. 这个仓库是什么
 
-`dsh-dev-domain` 是 dsh 的开发领域**原生单包**，产物是「人设 + 只读 Skill + agent preset」，不是业务应用。
+`dsh-agent-dev` 是 dsh 的开发领域**原生单包**，产物是「人设 + 只读 Skill + agent preset」，不是业务应用。
 
 - **原生单包**：不依赖任何外部 agent core 包；`dsh plugin add` 装本包即可。
 - **零工具**：本包不声明任何 tools 实现（无 `tools()`，也无 `toolNames` 字段）；文件 / 命令 / 技能 /

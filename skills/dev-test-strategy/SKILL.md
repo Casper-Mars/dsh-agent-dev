@@ -49,7 +49,7 @@ read references/<stack>.md
 读完应当能直接复制命令执行，不需要再猜。
 
 路由路径相对本 SKILL.md 所在目录；安装后位于
-`node_modules/dsh-dev-domain/skills/dev-test-strategy/references/<stack>.md`（与 `dist-server/` 同级）。
+`node_modules/dsh-agent-dev/skills/dev-test-strategy/references/<stack>.md`（与 `dist-server/` 同级）。
 
 ## 第三步：最小验证优先
 

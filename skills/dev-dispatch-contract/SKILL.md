@@ -6,7 +6,7 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
 
 # 派发契约
 
-本 Skill 随 `dsh-dev-domain` 发布，只读。
+本 Skill 随 `dsh-agent-dev` 发布，只读。
 
 ## 触发条件
 

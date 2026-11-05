@@ -72,7 +72,7 @@ describe('cordis.patch.yml 卫生', () => {
 describe('领域插件条目', () => {
   it('dev-domain 的 name / inject 与 src/plugin.ts 一致', () => {
     const entry = byId('dev-domain')
-    expect(entry.name).toBe('dsh-dev-domain')
+    expect(entry.name).toBe('dsh-agent-dev')
     expect(entry.config).toBeUndefined()
     expect((entry as unknown as { inject?: string[] }).inject).toEqual(['skills', 'agents'])
   })

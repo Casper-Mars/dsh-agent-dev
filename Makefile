@@ -1,4 +1,4 @@
-# dsh-dev-domain 发布入口
+# dsh-agent-dev 发布入口
 # 用法：make help
 
 SHELL := /bin/bash
@@ -10,7 +10,7 @@ MAIN_BRANCH := main
 .PHONY: help install build test verify pack check stage-dry publish clean
 
 help: ## 列出所有目标与说明
-	@echo "dsh-dev-domain —— 可用目标："
+	@echo "dsh-agent-dev —— 可用目标："
 	@echo ""
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 	@echo ""

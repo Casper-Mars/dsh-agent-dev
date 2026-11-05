@@ -6,7 +6,7 @@ whenToUse: 收到子 agent 产物或 Tester 报告、准备 commit、准备把�
 
 # 质量闸门
 
-本 Skill 随 `dsh-dev-domain` 发布，只读。
+本 Skill 随 `dsh-agent-dev` 发布，只读。
 
 ## 触发条件
 

@@ -76,7 +76,7 @@ for (const rel of collectAssets(srcDir)) {
   const from = path.join(srcDir, rel)
   const to = path.join(outDir, rel)
   copyAssetIdempotent(from, to)
-  console.log(`[dsh-dev-domain-assets] ${path.relative(root, from)} -> ${path.relative(root, to)}`)
+  console.log(`[dsh-agent-dev-assets] ${path.relative(root, from)} -> ${path.relative(root, to)}`)
   count += 1
 }
 
@@ -84,8 +84,8 @@ const patch = path.join(root, 'cordis.patch.yml')
 if (existsSync(patch)) {
   const to = path.join(outDir, 'cordis.patch.yml')
   copyAssetIdempotent(patch, to)
-  console.log(`[dsh-dev-domain-assets] cordis.patch.yml -> ${path.relative(root, to)}`)
+  console.log(`[dsh-agent-dev-assets] cordis.patch.yml -> ${path.relative(root, to)}`)
   count += 1
 }
 
-console.log(`[dsh-dev-domain-assets] 共搬运 ${count} 个资源文件到 dist-server/`)
+console.log(`[dsh-agent-dev-assets] 共搬运 ${count} 个资源文件到 dist-server/`)

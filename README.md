@@ -1,8 +1,8 @@
-# dsh-dev-domain
+# dsh-agent-dev
 
 > 在本仓库工作的 agent 请先读 [AGENTS.md](./AGENTS.md)。
 
-`dsh-dev-domain` 是 dsh 的**开发领域原生单包**：装这一个包，就能得到
+`dsh-agent-dev` 是 dsh 的**开发领域原生单包**：装这一个包，就能得到
 
 - **Dev Leader persona**：注入主会话（depth 0 根 agent）的常驻 system prompt；
 - **8 个只读领域 Skill**：随包发布在 `skills/`，运行时由插件注册进 `ctx.skills`；
@@ -26,10 +26,10 @@ pnpm build
 dsh plugin --profile <p> add link:$PWD
 ```
 
-发布后可直接按版本安装（registry 上尚无该版本，`npm view dsh-dev-domain` 当前返回 404）：
+发布后可直接按版本安装（registry 上尚无该版本，`npm view dsh-agent-dev` 当前返回 404）：
 
 ```bash
-dsh plugin --profile <p> add dsh-dev-domain@0.2.0   # 发布后可用
+dsh plugin --profile <p> add dsh-agent-dev@0.2.0   # 发布后可用
 ```
 
 `link:` 安装的是当前目录，改动后需要 `pnpm build` 重新生成 `dist-server/`；`main` 指向
@@ -109,7 +109,7 @@ pnpm stage list                 # 查看暂存记录与 stage-id
 pnpm stage approve <stage-id>   # 批准发布（含 2FA）
 ```
 
-当前**未发布 npm**：`npm view dsh-dev-domain` 仍是 404；在那之前装包只能走本地
+当前**未发布 npm**：`npm view dsh-agent-dev` 仍是 404；在那之前装包只能走本地
 `dsh plugin --profile <p> add link:$PWD`。
 
 ## 目录
@@ -200,7 +200,7 @@ Skill 注册。
 
 0.1.x 依赖外部 core 与资产目录，0.2.0 改为原生单包。升级步骤：
 
-1. **记录回滚点**：npm 上没有 0.1.x（实测 `npm view dsh-dev-domain` → 404），git 上原本也没有 tag；
+1. **记录回滚点**：npm 上没有 0.1.x（实测 `npm view dsh-agent-dev` → 404），git 上原本也没有 tag；
    本仓库已为 0.1.0 基线 `b5d0e06` 创建本地 annotated tag `v0.1.0`（未推送），回滚方式见下节。
 2. **移除旧 core**（profile 里仍装着时才需要）：`dsh plugin --profile <p> remove dsh-rsi-agent`；若
    `$DSH_HOME/profiles/<p>/package.json` 的 `dsh.profile.bundles` 里仍有该条目，一并手工删除后
@@ -211,7 +211,7 @@ Skill 注册。
    dsh plugin --profile <p> add link:$PWD
    ```
 
-   发布后可按版本安装：`dsh plugin --profile <p> add dsh-dev-domain@0.2.0`（发布后可用）。
+   发布后可按版本安装：`dsh plugin --profile <p> add dsh-agent-dev@0.2.0`（发布后可用）。
 4. 按「装完核对组合树」检查 `dev-domain` 与 3 个 preset 是否都在，再跑 `pnpm verify:install`。
 
 ### 资产目录：不迁移、不读取
@@ -224,7 +224,7 @@ Skill 注册。
 
 ### 回滚到 0.1.0
 
-npm 上没有 0.1.0（`npm view dsh-dev-domain` → 404），回滚只能在本地按 tag 进行：
+npm 上没有 0.1.0（`npm view dsh-agent-dev` → 404），回滚只能在本地按 tag 进行：
 
 ```bash
 # 1) 检出 0.1.0 基线（本地 annotated tag v0.1.0 → b5d0e06，未推送）

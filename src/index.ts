@@ -1,5 +1,5 @@
 /**
- * `dsh-dev-domain` 包入口：导出 Cordis 插件三要素与 `dev` 领域数据。
+ * `dsh-agent-dev` 包入口：导出 Cordis 插件三要素与 `dev` 领域数据。
  *
  * `package.json` 的 `exports["."]` 指向本文件的编译产物
  * （`dist-server/index.js`）。领域数据只暴露 {@link DEV_DOMAIN}：
