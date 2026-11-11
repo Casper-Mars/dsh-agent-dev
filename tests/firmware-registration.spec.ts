@@ -280,7 +280,8 @@ describe('registerDomainFirmwareSkills', () => {
     expect(registerDomainFirmwareSkills(fakeContext({}), DEV_DOMAIN.skills, logger)).toEqual([])
     expect(warns).toHaveLength(1)
     expect(warns[0]).toContain('ctx.skills')
-    expect(warns[0]).toContain('8 个')
+    // 数量与声明同源（动态插值），加删 Skill 时文案与断言一起变，不会静默漂移。
+    expect(warns[0]).toContain(`${DEV_DOMAIN.skills.length} 个`)
   })
 
   it('register() 返回非函数 → 视为失败并回滚', () => {

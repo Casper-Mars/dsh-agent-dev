@@ -236,7 +236,7 @@ export function registerDomainFirmwareSkills(
   const registry = readSkillRegistry(ctx)
   if (registry === undefined) {
     logger.warn(
-      'ctx.skills 缺失或不支持 register()，跳过领域 Skill 注册（降级：8 个 dev-* Skill 在会话中不可见）',
+      `ctx.skills 缺失或不支持 register()，跳过领域 Skill 注册（降级：${skills?.length ?? 0} 个 dev-* Skill 在会话中不可见）`,
     )
     return []
   }
