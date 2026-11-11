@@ -57,7 +57,9 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
    - 关键词：Wiki 检索「Skill 写作规范 / 派发契约」
 9. 交付格式：分支 + commit hash；每条命令 + 退出码；AC 逐条证据；未覆盖项与风险
 10. 交付形态与环境限制：`delivery_mode: commit|workspace`；不可写路径（如主仓库 `.git/`）、
-    无审批通道、网络/凭据限制、必须降级的命令
+    无审批通道、网络/凭据限制、必须降级的命令；环境由 Leader 在阶段 1.5 备好，卡片必须写
+    容器名 / `WF` / 执行命令形态；子 agent 不得自行 `docker run` / `devcontainer up`，
+    自建私有环境须在报告里登记 `name=… id=… 已回收|待回收`
 ```
 
 字段硬要求：

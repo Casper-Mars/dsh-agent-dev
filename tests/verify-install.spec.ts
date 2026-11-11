@@ -31,7 +31,7 @@ function writeFile(target: string, content: string): void {
   writeFileSync(target, content, 'utf8')
 }
 
-/** 完整夹具：8 个 SKILL.md + 5 个 references，模拟一份合格资产目录。 */
+/** 完整夹具：9 个 SKILL.md + 5 个 references，模拟一份合格资产目录。 */
 function makeFixture(): { root: string; skillsRoot: string } {
   const root = mkdtempSync(join(tmpdir(), 'verify-install-'))
   temporaryRoots.push(root)
@@ -56,31 +56,31 @@ afterEach(() => {
 })
 
 describe('期望常量', () => {
-  it('8 个 Skill + 5 个 references = 13 项', () => {
-    expect(EXPECTED_SKILLS).toHaveLength(8)
-    expect(new Set(EXPECTED_SKILLS).size).toBe(8)
+  it('9 个 Skill + 5 个 references = 14 项', () => {
+    expect(EXPECTED_SKILLS).toHaveLength(9)
+    expect(new Set(EXPECTED_SKILLS).size).toBe(9)
     expect(EXPECTED_REFERENCE_STACKS).toHaveLength(5)
-    expect(EXPECTED_CHECK_COUNT).toBe(13)
+    expect(EXPECTED_CHECK_COUNT).toBe(14)
   })
 })
 
 describe('verifyInstall（包内资产）', () => {
-  it('默认检查包内 skills/：未安装状态下 13 条全 PASS、退出码 0', () => {
+  it('默认检查包内 skills/：未安装状态下 14 条全 PASS、退出码 0', () => {
     const targets = resolveSkillsRoot({ repoRoot: REPO_ROOT })
     expect(targets.source).toBe('package')
     expect(targets.skillsRoot).toBe(join(REPO_ROOT, 'skills'))
 
     const result = verifyInstall(targets)
-    expect([result.checks.length, result.passed, result.failed]).toEqual([13, 13, 0])
+    expect([result.checks.length, result.passed, result.failed]).toEqual([14, 14, 0])
     expect(exitCode(result)).toBe(0)
     expect(result.source).toBe('package')
 
     const reports = checkLines(formatReport(result))
-    expect(reports).toHaveLength(13)
+    expect(reports).toHaveLength(14)
     expect(reports.every((line) => line.startsWith('PASS'))).toBe(true)
   })
 
-  it('完整夹具 → 13 条 PASS，kind / name 顺序与清单一致', () => {
+  it('完整夹具 → 14 条 PASS，kind / name 顺序与清单一致', () => {
     const fixture = makeFixture()
     const result = verifyInstall({ skillsRoot: fixture.skillsRoot })
     const actual = checkLines(formatReport(result)).map((line) => line.split(' ').slice(1, 3).join(':'))
@@ -93,7 +93,7 @@ describe('verifyInstall（包内资产）', () => {
     expect(exitCode(result)).toBe(0)
   })
 
-  it('缺 1 个 SKILL.md → 1 条 FAIL（带路径）+ 12 条 PASS，退出码 1', () => {
+  it('缺 1 个 SKILL.md → 1 条 FAIL（带路径）+ 13 条 PASS，退出码 1', () => {
     const fixture = makeFixture()
     const missing = join(fixture.skillsRoot, EXPECTED_SKILLS[0] as string, 'SKILL.md')
     rmSync(dirname(missing), { recursive: true, force: true })
@@ -106,7 +106,7 @@ describe('verifyInstall（包内资产）', () => {
     expect(fails).toHaveLength(1)
     expect(fails[0]).toContain(`skill ${EXPECTED_SKILLS[0]}`)
     expect(fails[0]).toContain(missing)
-    expect(lines.filter((line) => line.startsWith('PASS'))).toHaveLength(12)
+    expect(lines.filter((line) => line.startsWith('PASS'))).toHaveLength(13)
   })
 
   it('缺 1 个 reference → 1 条 FAIL', () => {
@@ -161,11 +161,11 @@ describe('resolveSkillsRoot', () => {
 })
 
 describe('CLI 退出码', () => {
-  it('默认路径 → exit 0，13 条 PASS，无 FAIL', () => {
+  it('默认路径 → exit 0，14 条 PASS，无 FAIL', () => {
     const child = runCli([])
     const lines = checkLines(child.stdout.split('\n'))
     expect(child.status).toBe(0)
-    expect(lines).toHaveLength(13)
+    expect(lines).toHaveLength(14)
     expect(lines.every((line) => line.startsWith('PASS'))).toBe(true)
     expect(child.stdout).not.toMatch(/^FAIL/m)
   })
@@ -175,7 +175,7 @@ describe('CLI 退出码', () => {
     const child = runCli(['--assets', fixture.skillsRoot])
     const lines = checkLines(child.stdout.split('\n'))
     expect(child.status).toBe(0)
-    expect(lines).toHaveLength(13)
+    expect(lines).toHaveLength(14)
     expect(child.stdout).toContain('手工资产目录核查')
     expect(child.stdout).toContain(fixture.skillsRoot)
   })
@@ -214,12 +214,12 @@ describe('CLI 退出码', () => {
     }
   })
 
-  it.skipIf(process.platform === 'win32')('经符号链接调用 → 仍跑满 13 项 PASS，不静默 exit 0', () => {
+  it.skipIf(process.platform === 'win32')('经符号链接调用 → 仍跑满 14 项 PASS，不静默 exit 0', () => {
     const link = join(makeFixture().root, 'verify-link.mjs')
     symlinkSync(SCRIPT, link)
     const child = spawnSync(process.execPath, [link], { encoding: 'utf8', cwd: REPO_ROOT })
     const lines = checkLines(child.stdout.split('\n'))
-    expect([child.status, child.stdout.length > 0, lines.length]).toEqual([0, true, 13])
+    expect([child.status, child.stdout.length > 0, lines.length]).toEqual([0, true, 14])
     expect(lines.every((line) => line.startsWith('PASS'))).toBe(true)
   })
 })

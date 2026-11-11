@@ -1,5 +1,5 @@
 /**
- * 包内资产自检（`pnpm verify:install`）：确认本包 `skills/` 下 8 个领域 Skill 的
+ * 包内资产自检（`pnpm verify:install`）：确认本包 `skills/` 下 9 个领域 Skill 的
  * `SKILL.md` 与 `dev-test-strategy/references/` 的 5 个栈文档齐全且非空。
  *
  * 检查目标是**包内**资产，与是否安装到 profile 无关：未安装状态下也必须全 PASS。
@@ -15,9 +15,10 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-/** 期望的 8 个领域 Skill（与 `src/domain.ts` 的 DEV_DOMAIN.skills 一致）。 */
+/** 期望的 9 个领域 Skill（与 `src/domain.ts` 的 DEV_DOMAIN.skills 一致）。 */
 export const EXPECTED_SKILLS = [
   'dev-container',
+  'dev-environment',
   'dev-dispatch-contract',
   'dev-quality-gate',
   'dev-retro',
@@ -30,7 +31,7 @@ export const EXPECTED_SKILLS = [
 /** `dev-test-strategy/references/` 下期望的 5 个栈文档（文件名去掉 `.md`）。 */
 export const EXPECTED_REFERENCE_STACKS = ['go', 'harmony-arkts', 'node-ts', 'python', 'react']
 
-/** 检查项总数：8 个 SKILL.md + 5 个 references。 */
+/** 检查项总数：9 个 SKILL.md + 5 个 references。 */
 export const EXPECTED_CHECK_COUNT = EXPECTED_SKILLS.length + EXPECTED_REFERENCE_STACKS.length
 
 /** 目录存在性判断（环境错误 → 退出码 2 用）。 */
@@ -57,7 +58,7 @@ function check(kind, name, file) {
 }
 
 /**
- * 执行 13 项自检（8 个 Skill + 5 个 references），不抛错、不写盘。
+ * 执行 14 项自检（9 个 Skill + 5 个 references），不抛错、不写盘。
  *
  * @param {{ skillsRoot: string, source?: 'package' | 'assets' }} targets
  * @returns {{ skillsRoot: string, source: string, checks: object[], passed: number, failed: number, ok: boolean }}
@@ -83,7 +84,7 @@ export function verifyInstall({ skillsRoot, source = 'package' }) {
   }
 }
 
-/** 报告 → 文本行：`PASS` / `FAIL` 行只对应检查项（恰好 13 条），其余以 `#` 开头，便于 grep 计数。 */
+/** 报告 → 文本行：`PASS` / `FAIL` 行只对应检查项（恰好 14 条），其余以 `#` 开头，便于 grep 计数。 */
 export function formatReport(result) {
   const lines = [`# verify-install：skills=${result.skillsRoot} 来源=${result.source}`]
   if (result.source === 'assets') {

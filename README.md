@@ -5,7 +5,7 @@
 `dsh-agent-dev` 是 dsh 的**开发领域原生单包**：装这一个包，就能得到
 
 - **Dev Leader persona**：注入主会话（depth 0 根 agent）的常驻 system prompt；
-- **8 个只读领域 Skill**：随包发布在 `skills/`，运行时由插件注册进 `ctx.skills`；
+- **9 个只读领域 Skill**：随包发布在 `skills/`，运行时由插件注册进 `ctx.skills`；
 - **3 个 agent preset**：`dev-leader` / `dev-developer` / `dev-tester`，由 `cordis.patch.yml` 装配。
 
 零外部核心依赖：不需要额外安装任何 agent core 包，也没有「先编译 core 再装领域包」的前置步骤。
@@ -62,8 +62,8 @@ dsh --profile <p> --dump-config | grep -E "dev-domain|preset-dev-"
 ```bash
 pnpm typecheck        # tsc --noEmit
 pnpm build            # 产出 dist-server/；npm pack 的发布内容依赖它
-pnpm test             # vitest run：5 个 spec、81 个用例
-pnpm verify:install   # 13/13 PASS：8 个 SKILL.md + 5 个 references
+pnpm test             # vitest run：5 个 spec、83 个用例
+pnpm verify:install   # 14/14 PASS：9 个 SKILL.md + 5 个 references
 npm pack --dry-run    # 检查发布内容清单（必须在 build 之后执行）
 ```
 
@@ -73,11 +73,11 @@ npm pack --dry-run    # 检查发布内容清单（必须在 build 之后执行�
 |------|----------|
 | `pnpm typecheck` | 退出码 0，无类型错误 |
 | `pnpm build` | 退出码 0，产出 `dist-server/index.js` 与 `dist-server/cordis.patch.yml` |
-| `pnpm test` | **81 passed**、退出码 0（`vitest run`，0 个用例会直接失败） |
-| `pnpm verify:install` | 13 行 `PASS`、退出码 0；任一 `FAIL` 退出码 1；目录 / 参数错误退出码 2 |
-| `npm pack --dry-run` | build 后共 29 个文件；清单含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
+| `pnpm test` | **83 passed**、退出码 0（`vitest run`，0 个用例会直接失败） |
+| `pnpm verify:install` | 14 行 `PASS`、退出码 0；任一 `FAIL` 退出码 1；目录 / 参数错误退出码 2 |
+| `npm pack --dry-run` | build 后共 30 个文件；清单含 `skills/` 14 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
 
-`npm pack --dry-run` 不依赖构建缓存：干净树（没有 `dist-server/`）实测只有 18 个文件且不含任何
+`npm pack --dry-run` 不依赖构建缓存：干净树（没有 `dist-server/`）实测只有 19 个文件且不含任何
 运行时产物，所以必须先 `pnpm build` 再打清单。
 
 `verify:install` 默认检查**包内** `skills/`，不需要安装到 profile；`--assets <dir>` 仅用于手工
@@ -124,13 +124,14 @@ pnpm stage approve <stage-id>   # 批准发布（含 2FA）
 ├─ pnpm-lock.yaml                # 依赖锁定
 ├─ src/
 │  ├─ index.ts                   # 包入口：re-export 插件三要素与领域数据
-│  ├─ plugin.ts                  # Cordis 插件：inject ['skills','agents']；注册 8 个 Skill；depth 0 注入 persona
-│  ├─ domain.ts                  # DEV_DOMAIN：id / version / displayName / persona / 8 个 Skill 元数据
+│  ├─ plugin.ts                  # Cordis 插件：inject ['skills','agents']；注册 9 个 Skill；depth 0 注入 persona
+│  ├─ domain.ts                  # DEV_DOMAIN：id / version / displayName / persona / 9 个 Skill 元数据
 │  ├─ persona.ts                 # LEADER_PERSONA：Leader 的全部行为规则（人设唯一来源）
 │  └─ firmware.ts                # SKILL.md 读取 / frontmatter 解析 / SkillRegistration 构造
 ├─ dist-server/                  # 构建产物：pnpm build 生成，git 忽略，不手工编辑
-├─ skills/                       # 唯一的 Skill 源（8 个只读 Skill，随包发布）
+├─ skills/                       # 唯一的 Skill 源（9 个只读 Skill，随包发布）
 │  ├─ dev-container/SKILL.md
+│  ├─ dev-environment/SKILL.md
 │  ├─ dev-dispatch-contract/SKILL.md
 │  ├─ dev-quality-gate/SKILL.md
 │  ├─ dev-retro/SKILL.md
@@ -142,7 +143,7 @@ pnpm stage approve <stage-id>   # 批准发布（含 2FA）
 │  └─ dev-worktree-git/SKILL.md
 ├─ scripts/
 │  ├─ copy-assets.mjs            # 把 cordis.patch.yml 复制进 dist-server/
-│  └─ verify-install.mjs         # 13 项包内自检（CLI + 导出纯函数）
+│  └─ verify-install.mjs         # 14 项包内自检（CLI + 导出纯函数）
 ├─ tests/                        # 5 个 spec：domain / plugin / patch / firmware-registration / verify-install
 ├─ tsconfig.json                 # 类型检查
 ├─ tsconfig.server.json          # 编译到 dist-server/
@@ -155,7 +156,7 @@ pnpm stage approve <stage-id>   # 批准发布（含 2FA）
 ### 运行时装配
 
 1. `cordis.patch.yml` 插入 `dev-domain` 插件、`agent-preset-registry`（default=`dev-leader`）与 3 个 preset；
-2. 插件 `apply()` 从 `ctx.skills` 注册 8 个 Skill（正文读 `skills/<name>/SKILL.md`），注册中途失败会
+2. 插件 `apply()` 从 `ctx.skills` 注册 9 个 Skill（正文读 `skills/<name>/SKILL.md`），注册中途失败会
    原子回滚，卸载时按 LIFO 反注册；
 3. 插件监听 `agent/created`，只给 **depth 0** 根 agent 注入 `LEADER_PERSONA`；子 agent 使用各自 preset
    的 persona，不继承 Leader 人设。
@@ -163,11 +164,12 @@ pnpm stage approve <stage-id>   # 批准发布（含 2FA）
 `inject` 只声明 `['skills', 'agents']`；`systemPrompt` 是 per-agent 服务，缺失时只 warn 降级，不阻断
 Skill 注册。
 
-### 8 个 Skill
+### 9 个 Skill
 
 | Skill | 作用 |
 |-------|------|
 | `dev-container` | 在项目级开发容器中构建 / 测试 / 运行；无配置时按依赖清单生成 |
+| `dev-environment` | 环境定义落 `<workspace>/.agent-env/`：开工先查后建、一 repo 一容器、交付前核销、收尾按序回收 |
 | `dev-dispatch-contract` | 派发上下文卡片、preset 选择、边界与回报格式 |
 | `dev-quality-gate` | 质量闸门（triage 六查）、独立验收分工与缺陷分级 |
 | `dev-worktree-git` | worktree / 分支 / commit 规范与写权限预检 |
