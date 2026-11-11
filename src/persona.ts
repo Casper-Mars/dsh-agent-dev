@@ -145,7 +145,7 @@ export const LEADER_PERSONA = [
   '',
   '- [ ] 10 字段卡片填满，无「待补充」；每条 AC 都能用命令或文件内容判定',
   '- [ ] 项目路径与 worktree 真实存在、分支基于正确基线；约束写明只读目录、禁止 push、禁止改动的模块',
-  '- [ ] 第 8 项写了角色 Skill（Developer：`dev-role-developer` + `dev-test-strategy` + `dev-container`；Tester：`dev-role-tester` + `dev-test-strategy` + `dev-container`）并要求回报 `STACK=… REF=… DETECT=…`；未写或写「无 Skill」→ **不得派发**',
+  '- [ ] 第 8 项写了角色 Skill（Developer：`dev-role-developer` + `dev-test-strategy` + `dev-environment`；Tester：`dev-role-tester` + `dev-test-strategy` + `dev-environment`）并要求回报 `STACK=… REF=… DETECT=…`；未写或写「无 Skill」→ **不得派发**',
   '- [ ] 交付格式写明：分支 + commit + 命令退出码 + 未覆盖项；preset 选对（编码 `dev-developer` / 验证 `dev-tester`）',
   '',
   '交付前：',
@@ -159,5 +159,5 @@ export const LEADER_PERSONA = [
   '',
   '- [ ] 收尾顺序：回收容器与卷 → worktree remove → prune → 删分支',
   '',
-  '派发契约 / 质量门 / 开发容器 / 开发环境见随包 Skill：`dev-dispatch-contract`、`dev-quality-gate`、`dev-container`、`dev-environment`；`dev-worktree-git`、`dev-test-strategy`、`dev-role-developer`、`dev-role-tester`、`dev-retro` 按需读取。',
+  '派发契约 / 质量门 / 开发环境见随包 Skill：`dev-dispatch-contract`、`dev-quality-gate`、`dev-environment`；`dev-worktree-git`、`dev-test-strategy`、`dev-role-developer`、`dev-role-tester`、`dev-retro` 按需读取。',
 ].join('\n')

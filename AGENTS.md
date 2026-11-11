@@ -9,7 +9,7 @@
 - **原生单包**：不依赖任何外部 agent core 包；`dsh plugin add` 装本包即可。
 - **零工具**：本包不声明任何 tools 实现（无 `tools()`，也无 `toolNames` 字段）；文件 / 命令 / 技能 /
   待办 / 子 agent 能力全部由 `cordis.patch.yml` 的 preset 组合 dsh 内置插件提供。
-- **零状态**：不写盘、不建资产目录、没有 bootstrap；9 个 Skill 只从包内 `skills/` 读取并在运行时注册。
+- **零状态**：不写盘、不建资产目录、没有 bootstrap；8 个 Skill 只从包内 `skills/` 读取并在运行时注册。
 - **只读 Skill**：0.2.0 起没有进化能力，Skill 正文不会被运行时改写。
 - **人设唯一来源**：`src/persona.ts` 的 `LEADER_PERSONA`，由插件注入 **depth 0 根会话**；
   `preset-dev-leader` 不挂 persona。`dev-developer` / `dev-tester` 各用自己的 preset persona。
@@ -19,7 +19,7 @@
 
 | 层 | 位置 | 性质 |
 |----|------|------|
-| 领域数据 | `src/domain.ts` | `DEV_DOMAIN`：9 个 Skill 的元数据（name / description / dir）与版本 |
+| 领域数据 | `src/domain.ts` | `DEV_DOMAIN`：8 个 Skill 的元数据（name / description / dir）与版本 |
 | 人设 | `src/persona.ts` | Leader 行为规则，注入主会话 |
 | 插件行为 | `src/plugin.ts` | Skill 注册 / 原子回滚 / LIFO 反注册 / persona 生命周期 |
 | Skill 加载 | `src/firmware.ts` | 读 `SKILL.md`、解析 frontmatter、构造 `SkillRegistration` |
@@ -34,10 +34,10 @@
 |------|--------|----------|
 | `pnpm install` | 安装 devDependencies（本包无运行时依赖） | 退出码 0，生成 `node_modules/` |
 | `pnpm typecheck` | `tsc -p tsconfig.json --noEmit` | 退出码 0，无类型错误 |
-| `pnpm test` | `vitest run`，5 个 spec 文件 | **83 passed**、退出码 0 |
+| `pnpm test` | `vitest run`，5 个 spec 文件 | **81 passed**、退出码 0 |
 | `pnpm build` | `clean` → `typecheck` → `tsc -p tsconfig.server.json` → `copy-assets.mjs` | 退出码 0，产出 `dist-server/index.js` 与 `dist-server/cordis.patch.yml` |
-| `pnpm verify:install` | 校验包内 9 个 `SKILL.md` + 5 个 references | 14 行 `PASS`、退出码 0；有 `FAIL` 退出码 1；参数 / 环境错误退出码 2 |
-| `npm pack --dry-run` | 检查发布内容 | 含 `skills/` 14 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
+| `pnpm verify:install` | 校验包内 8 个 `SKILL.md` + 5 个 references | 13 行 `PASS`、退出码 0；有 `FAIL` 退出码 1；参数 / 环境错误退出码 2 |
+| `npm pack --dry-run` | 检查发布内容 | 含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
 
 `pnpm test` 不带 `--passWithNoTests`：一个用例都没跑会直接失败，不会静默通过。
 
@@ -49,12 +49,12 @@
 | 路径 | 职责 | 改动规则 |
 |------|------|----------|
 | `src/index.ts` | 包入口，re-export 插件三要素与 `DEV_DOMAIN` | 只做 re-export |
-| `src/plugin.ts` | Cordis 插件：`name` / `inject` / `apply`；注册 9 个 Skill、depth 0 注入 persona | `name` / `inject` 必须与 `cordis.patch.yml` 逐项一致 |
-| `src/domain.ts` | `DEV_DOMAIN`：9 个 Skill 元数据与 `version` | `version` 与 `package.json` 保持同步；`dir` 由 `import.meta.url` 推导，不手拼 |
+| `src/plugin.ts` | Cordis 插件：`name` / `inject` / `apply`；注册 8 个 Skill、depth 0 注入 persona | `name` / `inject` 必须与 `cordis.patch.yml` 逐项一致 |
+| `src/domain.ts` | `DEV_DOMAIN`：8 个 Skill 元数据与 `version` | `version` 与 `package.json` 保持同步；`dir` 由 `import.meta.url` 推导，不手拼 |
 | `src/persona.ts` | `LEADER_PERSONA`（Leader 全部行为规则） | 只改文案，不改导出名；正文以 `# Dev Leader` 开头 |
 | `src/firmware.ts` | `SKILL.md` 读取 / frontmatter 解析 / `buildFirmwareSkillRegistration` | 只解析 `name` / `description` / `whenToUse`；保持可单测、无副作用 |
-| `skills/` | 9 个只读 Skill（含 `dev-test-strategy/references/`） | **唯一 Skill 源**；不新增 `templates/`，不做种子同步 |
-| `scripts/verify-install.mjs` | 14 项包内自检 | `EXPECTED_SKILLS` / `EXPECTED_REFERENCE_STACKS` 是检查清单真源 |
+| `skills/` | 8 个只读 Skill（含 `dev-test-strategy/references/`） | **唯一 Skill 源**；不新增 `templates/`，不做种子同步 |
+| `scripts/verify-install.mjs` | 13 项包内自检 | `EXPECTED_SKILLS` / `EXPECTED_REFERENCE_STACKS` 是检查清单真源 |
 | `scripts/copy-assets.mjs` | 把 `cordis.patch.yml` 复制进 `dist-server/` | 不要再引入 `templates/` / seeds 逻辑 |
 | `tests/` | domain / plugin / patch / firmware-registration / verify-install | 改契约或数量必须同步断言 |
 | `cordis.patch.yml` | bundle patch：`dev-domain` + 3 个 preset + 顶层 `tool-subagent` | 改 preset / 默认值必须跑测试并装一次核对 |
@@ -66,7 +66,7 @@
 2. **frontmatter 只有三个字段**：`name` / `description` / `whenToUse`，且只能是**单行扁平标量**
    （可带成对引号）。正文不得残留 frontmatter；`name` 必须等于目录名。解析器只读这 3 个必填字段，
    额外字段（例如 `user-invocable`）会被静默忽略，因此禁止添加。
-3. **Skill 只读注册**：9 个 Skill 由 `ctx.skills.register()` 在运行时注册，注册中途失败必须原子回滚，
+3. **Skill 只读注册**：8 个 Skill 由 `ctx.skills.register()` 在运行时注册，注册中途失败必须原子回滚，
    卸载按 LIFO 反注册。不得新增写盘、进化或资产落盘逻辑（`tests/plugin.spec.ts` 断言全程 0 次写盘）。
 4. **零工具**：不得新增 `tools()` 实现或 `toolNames` 字段；需要能力就改 preset 组合。
 5. **persona 只给 depth 0**：只注入根会话，同一 agent 幂等；子 agent 不继承 Leader 人设。
@@ -94,9 +94,9 @@
 
 1. 在 `skills/dev-test-strategy/references/<stack>.md` 新增或修改；
 2. 同步 `scripts/verify-install.mjs` 的 `EXPECTED_REFERENCE_STACKS`（检查项总数随之变化）；
-3. 同步数量与清单断言：`tests/verify-install.spec.ts` 的 `toHaveLength(5)` / `toBe(14)` /
-   `toHaveLength(13)`（缺 1 项时剩余 PASS 数）与 `tests/domain.spec.ts` 的 references 数量 `5`；
-4. 同步 README 的目录树、Skill 表与「14/14」说明；
+3. 同步数量与清单断言：`tests/verify-install.spec.ts` 的 `toHaveLength(5)` / `toBe(13)` /
+   `toHaveLength(12)`（缺 1 项时剩余 PASS 数）与 `tests/domain.spec.ts` 的 references 数量 `5`；
+4. 同步 README 的目录树、Skill 表与「13/13」说明；
 5. `pnpm typecheck && pnpm test && pnpm verify:install`。
 
 ### 配方 C：新增一个 Skill
@@ -104,8 +104,8 @@
 1. 新建 `skills/<new-name>/SKILL.md`（frontmatter 三字段，`name` = 目录名）；
 2. 在 `src/domain.ts` 的 `DEV_DOMAIN.skills` 增加 `skill('<new-name>', '<description>')`；
 3. 同步 `scripts/verify-install.mjs` 的 `EXPECTED_SKILLS`；
-4. 同步测试断言：`tests/domain.spec.ts` 的「恰好 9 个 Skill」与 `tests/verify-install.spec.ts` 的
-   `EXPECTED_SKILLS` 长度 / `toBe(14)` / `toHaveLength(13)`；
+4. 同步测试断言：`tests/domain.spec.ts` 的「恰好 8 个 Skill」与 `tests/verify-install.spec.ts` 的
+   `EXPECTED_SKILLS` 长度 / `toBe(13)` / `toHaveLength(12)`；
 5. 同步 README 的 Skill 表、目录树与自检条数；
 6. `pnpm typecheck && pnpm test && pnpm build && pnpm verify:install`。
 
@@ -127,7 +127,7 @@
    Skill 只写角色边界、命令、判据与证据格式。
 
 `## 禁止项` / `## 检查清单` 按 Skill 类型取舍：规则型 Skill（派发契约、质量闸门、角色细则、复盘）
-必须写；操作型 Skill 可用「边界」「验收」等小节承载同等职责（`dev-container` 即如此），不强制凑标题。
+必须写；操作型 Skill（`dev-environment`）除「禁止项」「检查清单」外还可用「常见故障与处置」等小节补充判据，不强制凑标题。
 
 写作要求：
 
@@ -152,7 +152,7 @@
    `STACK=… REF=… DETECT=…`。只写「按规范执行」等于没有约束。
 2. **`link:` 安装不会替你 build**：profile 的 `main` 指向 `dist-server/index.js`，改完源码必须
    `pnpm build`，否则加载的还是旧产物。
-3. **`pnpm test` 的判据是用例数**：成功看 **83 passed**，不要只贴退出码；无 `--passWithNoTests` 后
+3. **`pnpm test` 的判据是用例数**：成功看 **81 passed**，不要只贴退出码；无 `--passWithNoTests` 后
    空跑会失败，但用例被误删仍可能「少而绿」，改动测试时要核对数量。
 4. **`$DSH_HOME` 与 workspace 别混**：`verify:install` 只认包内 `skills/`（或显式 `--assets`），
    不会去读 `$DSH_HOME` 下的旧资产目录。
@@ -164,9 +164,9 @@
 ## 9. 交付前检查清单
 
 - [ ] `pnpm typecheck` → exit 0
-- [ ] `pnpm test` → exit 0，且 **83 passed**（数量随改动更新时，以真实输出为准）
+- [ ] `pnpm test` → exit 0，且 **81 passed**（数量随改动更新时，以真实输出为准）
 - [ ] `pnpm build` → exit 0，`dist-server/index.js` 与 `dist-server/cordis.patch.yml` 存在
-- [ ] `pnpm verify:install` → 14/14 PASS、exit 0
+- [ ] `pnpm verify:install` → 13/13 PASS、exit 0
 - [ ] `npm pack --dry-run` → 清单符合第 2 节断言，无 `templates/` / `src/` / `tests/`
 - [ ] 涉及项目路径时：项目在 `<workspace>/projects/<repo>`，worktree 在 `<workspace>/projects/.worktrees/` 下
 - [ ] 改过 Skill / references 时：`src/domain.ts`、`verify-install.mjs` 清单、测试断言、README 已同步

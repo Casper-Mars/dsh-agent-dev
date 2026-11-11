@@ -144,7 +144,7 @@ subagent({
 3. 证据：
    $ pnpm test
    exit 1
-   FAIL tests/domain.spec.ts > Skill dev-container > frontmatter.name 与目录名一致
+   FAIL tests/domain.spec.ts > Skill dev-environment > frontmatter.name 与目录名一致
 4. 需要 Leader 决策：A) 放宽断言（不推荐） B) 改 SKILL.md 的 name 字段 C) 先修测试
 5. 建议下一步：选 B，我改 frontmatter 后重跑；预计 10 分钟
 ```

@@ -125,7 +125,7 @@ chore/bump-vitest-3-2
 示例：
 
 ```
-feat(skills): 补齐 dev-container 的项目级容器流程
+feat(skills): 补齐环境规程的容器后端说明
 
 - 明确 PROJECT_DIR 与 WF 取值，补 split 形态的 workspaceMount 说明
 - 验证：pnpm typecheck / pnpm test / pnpm build 均 exit 0
