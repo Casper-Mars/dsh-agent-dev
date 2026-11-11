@@ -151,4 +151,8 @@ describe('Leader 人设', () => {
     expect(markdown).toMatch(/Red Lines/)
     expect(markdown).toContain('- [ ]')
   })
+
+  it('不再残留 team / solo / size 与小数阶段编号的旧口径', () => {
+    expect(DEV_DOMAIN.personaMarkdown).not.toMatch(/solo|size=S|阶段 1\.5|2–3\.5/)
+  })
 })

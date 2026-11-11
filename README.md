@@ -51,9 +51,8 @@ dsh --profile <p> --dump-config | grep -E "dev-domain|preset-dev-"
 ### 怎么用
 
 装好后主会话就是 Dev Leader。给它「需求 + 验收标准 + 约束」，它会编号 AC、拆任务、派发
-`dev-developer` 编码、再派 `dev-tester` 独立验收。只有同时满足「改动文件 ≤ 2、diff ≤ 80 行、
-无新增依赖、不改公共 API、无数据迁移、单条命令可判定」且不属于安全 / 权限 / 支付 / 生产数据类，
-才允许 Leader 自己动手（solo），且默认仍是 team。
+`dev-developer` 编码、再派 `dev-tester` 独立验收。Leader 不写业务代码：一律派发子 agent 编码、
+一律派发独立 Tester 验收，Leader 只做元操作（读代码 / 写交付说明 / 建 worktree 与分支 / commit 与 push / 环境管理与核销）。
 
 ## 自检
 
@@ -62,7 +61,7 @@ dsh --profile <p> --dump-config | grep -E "dev-domain|preset-dev-"
 ```bash
 pnpm typecheck        # tsc --noEmit
 pnpm build            # 产出 dist-server/；npm pack 的发布内容依赖它
-pnpm test             # vitest run：5 个 spec、81 个用例
+pnpm test             # vitest run：5 个 spec、82 个用例
 pnpm verify:install   # 13/13 PASS：8 个 SKILL.md + 5 个 references
 npm pack --dry-run    # 检查发布内容清单（必须在 build 之后执行）
 ```
@@ -73,7 +72,7 @@ npm pack --dry-run    # 检查发布内容清单（必须在 build 之后执行�
 |------|----------|
 | `pnpm typecheck` | 退出码 0，无类型错误 |
 | `pnpm build` | 退出码 0，产出 `dist-server/index.js` 与 `dist-server/cordis.patch.yml` |
-| `pnpm test` | **81 passed**、退出码 0（`vitest run`，0 个用例会直接失败） |
+| `pnpm test` | **82 passed**、退出码 0（`vitest run`，0 个用例会直接失败） |
 | `pnpm verify:install` | 13 行 `PASS`、退出码 0；任一 `FAIL` 退出码 1；目录 / 参数错误退出码 2 |
 | `npm pack --dry-run` | build 后共 29 个文件；清单含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
 

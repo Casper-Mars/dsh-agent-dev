@@ -34,7 +34,7 @@
 |------|--------|----------|
 | `pnpm install` | 安装 devDependencies（本包无运行时依赖） | 退出码 0，生成 `node_modules/` |
 | `pnpm typecheck` | `tsc -p tsconfig.json --noEmit` | 退出码 0，无类型错误 |
-| `pnpm test` | `vitest run`，5 个 spec 文件 | **81 passed**、退出码 0 |
+| `pnpm test` | `vitest run`，5 个 spec 文件 | **82 passed**、退出码 0 |
 | `pnpm build` | `clean` → `typecheck` → `tsc -p tsconfig.server.json` → `copy-assets.mjs` | 退出码 0，产出 `dist-server/index.js` 与 `dist-server/cordis.patch.yml` |
 | `pnpm verify:install` | 校验包内 8 个 `SKILL.md` + 5 个 references | 13 行 `PASS`、退出码 0；有 `FAIL` 退出码 1；参数 / 环境错误退出码 2 |
 | `npm pack --dry-run` | 检查发布内容 | 含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
@@ -152,7 +152,7 @@
    `STACK=… REF=… DETECT=…`。只写「按规范执行」等于没有约束。
 2. **`link:` 安装不会替你 build**：profile 的 `main` 指向 `dist-server/index.js`，改完源码必须
    `pnpm build`，否则加载的还是旧产物。
-3. **`pnpm test` 的判据是用例数**：成功看 **81 passed**，不要只贴退出码；无 `--passWithNoTests` 后
+3. **`pnpm test` 的判据是用例数**：成功看 **82 passed**，不要只贴退出码；无 `--passWithNoTests` 后
    空跑会失败，但用例被误删仍可能「少而绿」，改动测试时要核对数量。
 4. **`$DSH_HOME` 与 workspace 别混**：`verify:install` 只认包内 `skills/`（或显式 `--assets`），
    不会去读 `$DSH_HOME` 下的旧资产目录。
@@ -164,7 +164,7 @@
 ## 9. 交付前检查清单
 
 - [ ] `pnpm typecheck` → exit 0
-- [ ] `pnpm test` → exit 0，且 **81 passed**（数量随改动更新时，以真实输出为准）
+- [ ] `pnpm test` → exit 0，且 **82 passed**（数量随改动更新时，以真实输出为准）
 - [ ] `pnpm build` → exit 0，`dist-server/index.js` 与 `dist-server/cordis.patch.yml` 存在
 - [ ] `pnpm verify:install` → 13/13 PASS、exit 0
 - [ ] `npm pack --dry-run` → 清单符合第 2 节断言，无 `templates/` / `src/` / `tests/`
