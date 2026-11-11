@@ -11,7 +11,7 @@
   待办 / 子 agent 能力全部由 `cordis.patch.yml` 的 preset 组合 dsh 内置插件提供。
 - **零状态**：不写盘、不建资产目录、没有 bootstrap；8 个 Skill 只从包内 `skills/` 读取并在运行时注册。
 - **只读 Skill**：0.2.0 起没有进化能力，Skill 正文不会被运行时改写。
-- **人设唯一来源**：`src/persona.ts` 的 `LEADER_PERSONA`，由插件注入 **depth 0 根会话**；
+- **人设唯一来源**：`src/persona/LEADER.md`（正文原文），由 `src/persona.ts` 读取后以 `LEADER_PERSONA` 导出，再由插件注入 **depth 0 根会话**；
   `preset-dev-leader` 不挂 persona。`dev-developer` / `dev-tester` 各用自己的 preset persona。
 - **环境基线**：dsh `0.2.1-rc.2`、Node ≥ `22.19.0`、pnpm ≥ `11.7.0`。
 
@@ -20,7 +20,7 @@
 | 层 | 位置 | 性质 |
 |----|------|------|
 | 领域数据 | `src/domain.ts` | `DEV_DOMAIN`：8 个 Skill 的元数据（name / description / dir）与版本 |
-| 人设 | `src/persona.ts` | Leader 行为规则，注入主会话 |
+| 人设 | `src/persona/LEADER.md` + `src/persona.ts` | Leader 行为规则正文（`.md`）+ 读取导出，注入主会话 |
 | 插件行为 | `src/plugin.ts` | Skill 注册 / 原子回滚 / LIFO 反注册 / persona 生命周期 |
 | Skill 加载 | `src/firmware.ts` | 读 `SKILL.md`、解析 frontmatter、构造 `SkillRegistration` |
 | Skill 正文 | `skills/<name>/SKILL.md` | **唯一 Skill 源**，随包发布、只读 |
@@ -35,9 +35,9 @@
 | `pnpm install` | 安装 devDependencies（本包无运行时依赖） | 退出码 0，生成 `node_modules/` |
 | `pnpm typecheck` | `tsc -p tsconfig.json --noEmit` | 退出码 0，无类型错误 |
 | `pnpm test` | `vitest run`，5 个 spec 文件 | **82 passed**、退出码 0 |
-| `pnpm build` | `clean` → `typecheck` → `tsc -p tsconfig.server.json` → `copy-assets.mjs` | 退出码 0，产出 `dist-server/index.js` 与 `dist-server/cordis.patch.yml` |
+| `pnpm build` | `clean` → `typecheck` → `tsc -p tsconfig.server.json` → `copy-assets.mjs` | 退出码 0，产出 `dist-server/index.js`、`dist-server/cordis.patch.yml` 与 `dist-server/persona/LEADER.md` |
 | `pnpm verify:install` | 校验包内 8 个 `SKILL.md` + 5 个 references | 13 行 `PASS`、退出码 0；有 `FAIL` 退出码 1；参数 / 环境错误退出码 2 |
-| `npm pack --dry-run` | 检查发布内容 | 含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
+| `npm pack --dry-run` | 检查发布内容 | 含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`dist-server/persona/LEADER.md`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
 
 `pnpm test` 不带 `--passWithNoTests`：一个用例都没跑会直接失败，不会静默通过。
 
@@ -51,7 +51,8 @@
 | `src/index.ts` | 包入口，re-export 插件三要素与 `DEV_DOMAIN` | 只做 re-export |
 | `src/plugin.ts` | Cordis 插件：`name` / `inject` / `apply`；注册 8 个 Skill、depth 0 注入 persona | `name` / `inject` 必须与 `cordis.patch.yml` 逐项一致 |
 | `src/domain.ts` | `DEV_DOMAIN`：8 个 Skill 元数据与 `version` | `version` 与 `package.json` 保持同步；`dir` 由 `import.meta.url` 推导，不手拼 |
-| `src/persona.ts` | `LEADER_PERSONA`（Leader 全部行为规则） | 只改文案，不改导出名；正文以 `# Dev Leader` 开头 |
+| `src/persona.ts` | 读 `src/persona/LEADER.md` 导出 `LEADER_PERSONA` | 只改文案（改 `.md`），不改导出名；正文以 `# Dev Leader` 开头 |
+| `src/persona/LEADER.md` | Leader 全部行为规则正文原文 | 一整块 markdown，行尾 LF、不留尾部空行；构建时由 `copy-assets.mjs` 复制进 `dist-server/` |
 | `src/firmware.ts` | `SKILL.md` 读取 / frontmatter 解析 / `buildFirmwareSkillRegistration` | 只解析 `name` / `description` / `whenToUse`；保持可单测、无副作用 |
 | `skills/` | 8 个只读 Skill（含 `dev-test-strategy/references/`） | **唯一 Skill 源**；不新增 `templates/`，不做种子同步 |
 | `scripts/verify-install.mjs` | 13 项包内自检 | `EXPECTED_SKILLS` / `EXPECTED_REFERENCE_STACKS` 是检查清单真源 |
@@ -165,7 +166,7 @@
 
 - [ ] `pnpm typecheck` → exit 0
 - [ ] `pnpm test` → exit 0，且 **82 passed**（数量随改动更新时，以真实输出为准）
-- [ ] `pnpm build` → exit 0，`dist-server/index.js` 与 `dist-server/cordis.patch.yml` 存在
+- [ ] `pnpm build` → exit 0，`dist-server/index.js`、`dist-server/cordis.patch.yml` 与 `dist-server/persona/LEADER.md` 存在
 - [ ] `pnpm verify:install` → 13/13 PASS、exit 0
 - [ ] `npm pack --dry-run` → 清单符合第 2 节断言，无 `templates/` / `src/` / `tests/`
 - [ ] 涉及项目路径时：项目在 `<workspace>/projects/<repo>`，worktree 在 `<workspace>/projects/.worktrees/` 下

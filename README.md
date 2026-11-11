@@ -71,10 +71,10 @@ npm pack --dry-run    # 检查发布内容清单（必须在 build 之后执行�
 | 命令 | 成功判据 |
 |------|----------|
 | `pnpm typecheck` | 退出码 0，无类型错误 |
-| `pnpm build` | 退出码 0，产出 `dist-server/index.js` 与 `dist-server/cordis.patch.yml` |
+| `pnpm build` | 退出码 0，产出 `dist-server/index.js`、`dist-server/cordis.patch.yml` 与 `dist-server/persona/LEADER.md` |
 | `pnpm test` | **82 passed**、退出码 0（`vitest run`，0 个用例会直接失败） |
 | `pnpm verify:install` | 13 行 `PASS`、退出码 0；任一 `FAIL` 退出码 1；目录 / 参数错误退出码 2 |
-| `npm pack --dry-run` | build 后共 29 个文件；清单含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
+| `npm pack --dry-run` | build 后共 30 个文件；清单含 `skills/` 13 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`dist-server/persona/LEADER.md`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
 
 `npm pack --dry-run` 不依赖构建缓存：干净树（没有 `dist-server/`）实测只有 18 个文件且不含任何
 运行时产物，所以必须先 `pnpm build` 再打清单。
@@ -125,7 +125,8 @@ pnpm stage approve <stage-id>   # 批准发布（含 2FA）
 │  ├─ index.ts                   # 包入口：re-export 插件三要素与领域数据
 │  ├─ plugin.ts                  # Cordis 插件：inject ['skills','agents']；注册 8 个 Skill；depth 0 注入 persona
 │  ├─ domain.ts                  # DEV_DOMAIN：id / version / displayName / persona / 8 个 Skill 元数据
-│  ├─ persona.ts                 # LEADER_PERSONA：Leader 的全部行为规则（人设唯一来源）
+│  ├─ persona.ts                 # LEADER_PERSONA：读 persona/LEADER.md 导出人设正文字符串
+│  ├─ persona/LEADER.md          # Leader 人设正文原文（一整块 markdown，唯一来源）
 │  └─ firmware.ts                # SKILL.md 读取 / frontmatter 解析 / SkillRegistration 构造
 ├─ dist-server/                  # 构建产物：pnpm build 生成，git 忽略，不手工编辑
 ├─ skills/                       # 唯一的 Skill 源（8 个只读 Skill，随包发布）
