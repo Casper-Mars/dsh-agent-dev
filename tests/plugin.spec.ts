@@ -234,7 +234,7 @@ function createHostContext(existingAgents: FakeAgent[] = []) {
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
-/** 期望的 8 个 Skill 名（与 domain 声明一致）。 */
+/** 期望的 13 个 Skill 名（与 domain 声明一致）。 */
 const EXPECTED_NAMES = DEV_DOMAIN.skills.map((skill) => skill.name)
 
 beforeEach(() => {
@@ -251,7 +251,7 @@ describe('领域 Skill 注册', () => {
     apply(context)
 
     expect(registry.registered).toEqual(EXPECTED_NAMES)
-    expect(registry.definitions.size).toBe(8)
+    expect(registry.definitions.size).toBe(13)
 
     for (const [name, registration] of registry.definitions) {
       const path = registration.path as string
@@ -343,7 +343,7 @@ describe('Leader persona 注入', () => {
     expect(prompt.sections[0].disposed).toBe(true)
   })
 
-  it('systemPrompt 缺失 → 只 warn，8 个 Skill 仍注册成功', async () => {
+  it('systemPrompt 缺失 → 只 warn，13 个 Skill 仍注册成功', async () => {
     const { context, registry, warns } = createHostContext()
     apply(context)
 
@@ -352,7 +352,7 @@ describe('Leader persona 注入', () => {
 
     expect(agent.ctx.injectCalls).toEqual([])
     expect(warns.some((line) => line.includes('systemPrompt'))).toBe(true)
-    expect(registry.definitions.size).toBe(8)
+    expect(registry.definitions.size).toBe(13)
   })
 })
 
@@ -371,7 +371,7 @@ describe('插件卸载', () => {
     await (skillsEffect as { fiber: FakeFiber }).fiber.dispose()
 
     expect(registry.unregistered).toEqual([...registry.registered].reverse())
-    expect(registry.unregistered).toHaveLength(8)
+    expect(registry.unregistered).toHaveLength(13)
     expect(registry.definitions.size).toBe(0)
   })
 
@@ -393,17 +393,17 @@ describe('插件卸载', () => {
     expect(agent.ctx.injectFibers[0].disposed).toBe(true)
   })
 
-  it('卸载后再装配 → 8 个 Skill 可重新注册（占位已释放）', async () => {
+  it('卸载后再装配 → 13 个 Skill 可重新注册（占位已释放）', async () => {
     const { context, registry } = createHostContext()
     apply(context)
     const skillsEffect = context.effects.find((item) => item.label === 'dev-domain:register-skills')
     await (skillsEffect as { fiber: FakeFiber }).fiber.dispose()
     expect(registry.definitions.size).toBe(0)
-    expect(registry.unregistered).toHaveLength(8)
+    expect(registry.unregistered).toHaveLength(13)
 
     apply(context)
-    expect(registry.registered).toHaveLength(16)
-    expect(registry.definitions.size).toBe(8)
+    expect(registry.registered).toHaveLength(26)
+    expect(registry.definitions.size).toBe(13)
   })
 })
 

@@ -4,6 +4,17 @@
 
 始终使用中文回复，结论先行，不啰嗦。
 
+## 技能路由
+
+收到请求先判断阶段，再读对应 Skill，不凭记忆直接执行：
+
+- 环境落位与容器：`dev-environment`；worktree / 分支 / 提交：`dev-worktree-git`。
+- 编码前拆分：`dev-implementation-plan`；按栈选测试命令：`dev-test-strategy`。
+- 提交前自审 / PR 评审：`dev-code-review`；排查缺陷：`dev-systematic-debugging`。
+- 发版、changelog、回滚：`dev-release`；日志 / 指标 / 告警：`dev-observability`。
+- 派发卡片：`dev-dispatch-contract`；验收：`dev-quality-gate`；复盘：`dev-retro`。
+- Developer / Tester 子 agent 只读各自的角色 Skill，不读 Leader 的调度技能。
+
 ## 阶段 1 · 对齐：先产出判定依据，不写代码
 
 - 读完任务说明全文，把验收标准抄成**编号列表**（AC1、AC2…），不转述、不合并；有歧义、缺失或互相冲突 → 停下来一次问完，不猜。
@@ -90,6 +101,7 @@
 开工前：
 
 - [ ] 已加载 `dev-worktree-git`；派发前加载 `dev-dispatch-contract`，验收前加载 `dev-quality-gate`
+- [ ] 编码前加载 `dev-implementation-plan`，提交前加载 `dev-code-review`；发版前加载 `dev-release`，补监控加载 `dev-observability`，排障加载 `dev-systematic-debugging`
 - [ ] 未预加载 `dev-role-developer` / `dev-role-tester`（那是子 agent 的规范）
 - [ ] 验收标准已编号 AC1…ACn，歧义点已向用户确认；`git status --short` 干净、分支与 worktree 正确、写权限预检已跑
 - [ ] 项目已落在 `<workspace>/projects/<repo>`（`pwd -P` 确认）；新项目 / 克隆未落在 workspace 根、`projects` 根或 `$HOME` / `~/project` / `~/agents`

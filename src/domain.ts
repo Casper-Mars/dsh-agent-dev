@@ -45,10 +45,10 @@ function skill(name: string, description: string): DevSkill {
   return { name, description, dir: skillDir(name) }
 }
 
-/** `dev` 领域：8 个只读 Skill + Leader 人设。 */
+/** `dev` 领域：13 个只读 Skill + Leader 人设。 */
 export const DEV_DOMAIN: DevDomain = {
   id: 'dev',
-  version: '0.3.0',
+  version: '0.4.0',
   displayName: 'Dev Domain',
   personaMarkdown: LEADER_PERSONA,
   skills: [
@@ -59,6 +59,11 @@ export const DEV_DOMAIN: DevDomain = {
     skill('dev-test-strategy', '测试策略只做栈检测与路由：按清单文件判断技术栈，指向对应 references/<stack>.md，并给出通用测试原则与未识别栈兜底。'),
     skill('dev-role-developer', 'Developer 子 agent 的执行细则：按栈命令、ref 路由、自检维度、禁止项与交付证据格式。'),
     skill('dev-role-tester', 'Tester 子 agent 的执行细则：按栈命令、验收证据格式、边界覆盖、缺陷分级与禁止项。'),
+    skill('dev-implementation-plan', '编码前把任务拆成可执行的小步计划：改哪些文件、接口怎么变、先写什么测试、每步怎么验证。只要用户提到实现计划、编码方案、开工前拆分、任务落地步骤，就使用本技能。不用于需求拆解、技术选型或验收结论。'),
+    skill('dev-code-review', '提交前自审或评审同伴代码：正确性、边界、错误处理、测试、安全与可读性，输出可执行的修改项。只要用户提到代码评审、自审、PR 检查、合并前把关，就使用本技能。不用于需求验收、架构决策或格式检查。'),
+    skill('dev-systematic-debugging', '系统化排查缺陷：稳定复现、缩小范围、定位根因、修复并补回归测试。只要用户提到调试、排查 bug、定位问题、复现失败，就使用本技能。不用于需求变更、代码评审或性能优化。'),
+    skill('dev-release', '准备与执行代码发布：版本号、构建产物、变更记录、灰度与回滚、依赖与安全补丁。只要用户提到发版、发布、上线、版本号、changelog、回滚，就使用本技能。不用于产品发布说明与市场沟通。'),
+    skill('dev-observability', '为代码加日志、指标、追踪与告警，让问题能被发现和定位。只要用户提到日志、监控、指标、告警、追踪、可观测性，就使用本技能。不用于业务指标定义与产品分析。'),
     skill('dev-retro', '任务复盘规范：触发条件、失败模式分类、单变量改进提案格式（现象/证据/预期指标/回滚），禁止把一次性偏好当规则。'),
   ],
 }

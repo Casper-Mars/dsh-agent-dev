@@ -15,22 +15,27 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-/** 期望的 8 个领域 Skill（与 `src/domain.ts` 的 DEV_DOMAIN.skills 一致）。 */
+/** 期望的 13 个领域 Skill（与 `src/domain.ts` 的 DEV_DOMAIN.skills 一致）。 */
 export const EXPECTED_SKILLS = [
   'dev-environment',
   'dev-dispatch-contract',
   'dev-quality-gate',
-  'dev-retro',
+  'dev-worktree-git',
+  'dev-test-strategy',
   'dev-role-developer',
   'dev-role-tester',
-  'dev-test-strategy',
-  'dev-worktree-git',
+  'dev-implementation-plan',
+  'dev-code-review',
+  'dev-systematic-debugging',
+  'dev-release',
+  'dev-observability',
+  'dev-retro',
 ]
 
 /** `dev-test-strategy/references/` 下期望的 5 个栈文档（文件名去掉 `.md`）。 */
 export const EXPECTED_REFERENCE_STACKS = ['go', 'harmony-arkts', 'node-ts', 'python', 'react']
 
-/** 检查项总数：8 个 SKILL.md + 5 个 references。 */
+/** 检查项总数：13 个 SKILL.md + 5 个 references。 */
 export const EXPECTED_CHECK_COUNT = EXPECTED_SKILLS.length + EXPECTED_REFERENCE_STACKS.length
 
 /** 目录存在性判断（环境错误 → 退出码 2 用）。 */
