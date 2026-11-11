@@ -20,7 +20,7 @@ const REFERENCES_ROOT = path.join(SKILLS_ROOT, 'dev-test-strategy', 'references'
 
 /** 期望的 8 个 Skill（顺序与 `DEV_DOMAIN.skills` 的稳定声明顺序一致）。 */
 const EXPECTED_SKILL_NAMES = [
-  'dev-container',
+  'dev-environment',
   'dev-dispatch-contract',
   'dev-quality-gate',
   'dev-worktree-git',
@@ -150,5 +150,9 @@ describe('Leader 人设', () => {
     expect(markdown).toContain('## 阶段 1 · 对齐')
     expect(markdown).toMatch(/Red Lines/)
     expect(markdown).toContain('- [ ]')
+  })
+
+  it('不再残留 team / solo / size 与小数阶段编号的旧口径', () => {
+    expect(DEV_DOMAIN.personaMarkdown).not.toMatch(/solo|size=S|阶段 1\.5|2–3\.5/)
   })
 })

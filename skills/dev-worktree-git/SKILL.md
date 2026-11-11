@@ -125,7 +125,7 @@ chore/bump-vitest-3-2
 示例：
 
 ```
-feat(skills): 补齐 dev-container 的项目级容器流程
+feat(skills): 补齐环境规程的容器后端说明
 
 - 明确 PROJECT_DIR 与 WF 取值，补 split 形态的 workspaceMount 说明
 - 验证：pnpm typecheck / pnpm test / pnpm build 均 exit 0
@@ -175,6 +175,7 @@ git -C <项目根目录> worktree prune                    # 清理已失效的�
 git -C <项目根目录> branch -d <branch>                # 已合并用 -d
 ```
 
+- 顺序固定为 **先回收容器与卷 → 再 `worktree remove` → `prune` → 删分支**（先删 worktree 会让容器失去归属锚点）；
 - 启动过中间件：`docker compose -p <worktree目录名> down -v`；
 - 删除分支用 `-d`，`-D` 只在确认提交已备份时使用；
 - 定期 `git worktree list` 检查是否有遗留目录。

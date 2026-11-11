@@ -276,7 +276,8 @@ describe('领域 Skill 注册', () => {
 
     expect(() => apply(context)).not.toThrow()
     expect(warns.some((line) => line.includes('ctx.skills'))).toBe(true)
-    expect(warns.some((line) => line.includes('8 个'))).toBe(true)
+    // 数量取自真实声明（EXPECTED_NAMES 就是 DEV_DOMAIN.skills），文案漂移会立刻红。
+    expect(warns.some((line) => line.includes(`${EXPECTED_NAMES.length} 个`))).toBe(true)
   })
 })
 

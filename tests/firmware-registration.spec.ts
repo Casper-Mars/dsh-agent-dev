@@ -239,10 +239,10 @@ describe('registerDomainFirmwareSkills', () => {
 
     expect(error).toBeInstanceOf(Error)
     expect((error as Error).message).toContain('已回滚')
-    expect((error as Error).message).toContain('dev-container')
+    expect((error as Error).message).toContain('dev-environment')
     expect((error as Error).message).toContain('boom')
     // 只回滚了第 1 个，注册表回到空态。
-    expect(registry.unregistered).toEqual(['dev-container'])
+    expect(registry.unregistered).toEqual(['dev-environment'])
     expect(registry.live.size).toBe(0)
   })
 
@@ -256,7 +256,7 @@ describe('registerDomainFirmwareSkills', () => {
 
     expect(warns).toHaveLength(1)
     expect(warns[0]).toContain('跳过 8 个')
-    expect(warns[0]).toContain('dev-container')
+    expect(warns[0]).toContain('dev-environment')
     expect(registry.live.size).toBe(8)
   })
 
@@ -280,7 +280,8 @@ describe('registerDomainFirmwareSkills', () => {
     expect(registerDomainFirmwareSkills(fakeContext({}), DEV_DOMAIN.skills, logger)).toEqual([])
     expect(warns).toHaveLength(1)
     expect(warns[0]).toContain('ctx.skills')
-    expect(warns[0]).toContain('8 个')
+    // 数量与声明同源（动态插值），加删 Skill 时文案与断言一起变，不会静默漂移。
+    expect(warns[0]).toContain(`${DEV_DOMAIN.skills.length} 个`)
   })
 
   it('register() 返回非函数 → 视为失败并回滚', () => {

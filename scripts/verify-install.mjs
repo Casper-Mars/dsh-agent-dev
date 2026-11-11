@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 
 /** 期望的 8 个领域 Skill（与 `src/domain.ts` 的 DEV_DOMAIN.skills 一致）。 */
 export const EXPECTED_SKILLS = [
-  'dev-container',
+  'dev-environment',
   'dev-dispatch-contract',
   'dev-quality-gate',
   'dev-retro',

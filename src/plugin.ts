@@ -2,7 +2,7 @@
  * `dev-domain` 插件契约层：原生 Cordis 插件（任务-03）。
  *
  * 本包是 `dev` 领域插件，只依赖 dsh 标准服务：
- *   - `skills`：注册 8 个领域 Skill（正文由 `skills/<name>/SKILL.md` 读取）；
+ *   - `skills`：注册 9 个领域 Skill（正文由 `skills/<name>/SKILL.md` 读取）；
  *   - `agents`：监听 agent 生命周期，只给 **depth 0** 根会话注入 Leader persona。
  *
  * 不再依赖旧核心的私有装配服务。领域数据来自 `src/domain.ts`，
@@ -220,7 +220,7 @@ function verifyRegistrationWinner(
 }
 
 /**
- * 把领域声明的 8 个 Skill 静态注册进 `ctx.skills`。
+ * 把领域声明的 9 个 Skill 静态注册进 `ctx.skills`。
  *
  * 降级语义：`ctx.skills` 缺失或不支持 `register()` 时只 warn，返回空数组，
  * **不阻断**插件装配。注册中途失败会回滚已注册项后抛出，调用方负责同时拆卸
@@ -236,7 +236,7 @@ export function registerDomainFirmwareSkills(
   const registry = readSkillRegistry(ctx)
   if (registry === undefined) {
     logger.warn(
-      'ctx.skills 缺失或不支持 register()，跳过领域 Skill 注册（降级：8 个 dev-* Skill 在会话中不可见）',
+      `ctx.skills 缺失或不支持 register()，跳过领域 Skill 注册（降级：${skills?.length ?? 0} 个 dev-* Skill 在会话中不可见）`,
     )
     return []
   }
@@ -530,7 +530,7 @@ class LeaderPersonaInjector {
 export function apply(ctx: Context): void {
   const logger = createDomainLogger(readService(ctx, 'logger'), 'dev-domain')
 
-  // 1) 8 个领域 Skill：注册 / 回滚 / LIFO 反注册全部交给 ctx.effect 管理。
+  // 1) 9 个领域 Skill：注册 / 回滚 / LIFO 反注册全部交给 ctx.effect 管理。
   ctx.effect(() => {
     const unregisters = registerDomainFirmwareSkills(ctx, DEV_DOMAIN.skills, logger)
 

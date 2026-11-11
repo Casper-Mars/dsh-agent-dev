@@ -57,7 +57,9 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
    - 关键词：Wiki 检索「Skill 写作规范 / 派发契约」
 9. 交付格式：分支 + commit hash；每条命令 + 退出码；AC 逐条证据；未覆盖项与风险
 10. 交付形态与环境限制：`delivery_mode: commit|workspace`；不可写路径（如主仓库 `.git/`）、
-    无审批通道、网络/凭据限制、必须降级的命令
+    无审批通道、网络/凭据限制、必须降级的命令；环境由 Leader 在阶段 1.5 备好，卡片必须写
+    容器名 / `WF` / 执行命令形态；子 agent 不得自行 `docker run` / `devcontainer up`，
+    自建私有环境须在报告里登记 `name=… id=… 已回收|待回收`
 ```
 
 字段硬要求：
@@ -142,7 +144,7 @@ subagent({
 3. 证据：
    $ pnpm test
    exit 1
-   FAIL tests/domain.spec.ts > Skill dev-container > frontmatter.name 与目录名一致
+   FAIL tests/domain.spec.ts > Skill dev-environment > frontmatter.name 与目录名一致
 4. 需要 Leader 决策：A) 放宽断言（不推荐） B) 改 SKILL.md 的 name 字段 C) 先修测试
 5. 建议下一步：选 B，我改 frontmatter 后重跑；预计 10 分钟
 ```

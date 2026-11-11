@@ -48,11 +48,11 @@ function skill(name: string, description: string): DevSkill {
 /** `dev` 领域：8 个只读 Skill + Leader 人设。 */
 export const DEV_DOMAIN: DevDomain = {
   id: 'dev',
-  version: '0.2.0',
+  version: '0.3.0',
   displayName: 'Dev Domain',
   personaMarkdown: LEADER_PERSONA,
   skills: [
-    skill('dev-container', '以项目级开发容器执行编码任务：已有 .devcontainer/devcontainer.json 就直接 `devcontainer up/exec`；没有就按依赖清单（package.json / go.mod / pyproject.toml / requirements.txt / pom.xml / Cargo.toml）自动生成配置再构建执行。使用本技能处理任意语言的构建、测试、运行、依赖管理与版本敏感工具链；不用于纯文档产出，也不用 `docker run` 单镜像兜底。'),
+    skill('dev-environment', 'Agent 侧开发环境管理规程：把「环境定义」存放在工作区的 <workspace>/.agent-env/（既不是项目仓、也不是 $DSH_HOME），开工前先查后建、一 repo 一容器、交付前按账本与 label 双路核销、收尾按固定顺序回收。本技能只教判断与动作（在哪里放、先查什么、怎么复用、怎么核销），不依赖任何随 skill 分发的脚本；技术栈识别与配置编写由 agent 自己完成。'),
     skill('dev-dispatch-contract', 'Leader 派发契约：10 字段上下文卡片、preset 选择表、Developer/Tester 边界、派发即结束本轮与失败回报格式。'),
     skill('dev-quality-gate', '交付质量门：triage 与独立验收的分工、按仓库脚本跑三件套、Tester 独立重跑、报告模板与 blocker/major/minor 判定。'),
     skill('dev-worktree-git', 'Git worktree 与分支/提交规范：分支命名、worktree 路径约定、Conventional Commits、清理流程与禁止 force push。'),
