@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-dev",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "description": "开发领域包（dsh）：原生单包提供 Leader 人设、13 个只读领域 Skill 与 3 个 agent preset",
   "keywords": [
@@ -16,7 +16,8 @@
   "packageManager": "pnpm@11.7.0",
   "engines": {
     "node": ">=22.19.0",
-    "pnpm": ">=11.7.0"
+    "pnpm": ">=11.7.0",
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
   },
   "main": "dist-server/index.js",
   "exports": {
@@ -51,14 +52,15 @@
     "test": "vitest run",
     "verify:install": "node scripts/verify-install.mjs",
     "clean": "rm -rf dist dist-server",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "compat": "bash scripts/dsh-compat.sh"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "4.0.5",
-    "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-skill": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-skill-filesystem": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.2"
+    "@deepseek-ai/cordis": ">=4.0.5 <5.0.0",
+    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.2 <0.3.0",
+    "@deepseek-ai/dsh-skill": ">=0.2.1-rc.2 <0.3.0",
+    "@deepseek-ai/dsh-skill-filesystem": ">=0.2.1-rc.2 <0.3.0",
+    "@deepseek-ai/dsh-tools": ">=0.2.1-rc.2 <0.3.0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-skill": {
@@ -72,11 +74,11 @@
     }
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "^4.0.5",
-    "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-skill": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-skill-filesystem": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.2",
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-skill": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-skill-filesystem": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
     "@types/node": "^22.13.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0",

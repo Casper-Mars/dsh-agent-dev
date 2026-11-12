@@ -7,7 +7,7 @@ SHELL := /bin/bash
 STAGE := pnpm stage publish --access public
 MAIN_BRANCH := main
 
-.PHONY: help install build test verify pack check stage-dry publish clean
+.PHONY: help install build test verify pack compat check stage-dry publish clean
 
 help: ## 列出所有目标与说明
 	@echo "dsh-agent-dev —— 可用目标："
@@ -33,6 +33,9 @@ pack: ## npm pack --dry-run（查看发布内容清单）
 
 check: build test verify pack ## 本地验收：build → test → verify → pack
 	@echo "✅ check 全部通过"
+
+compat: ## 兼容性校验（默认 latest）：make compat DSH_VERSION=0.2.2-rc.2
+	bash scripts/dsh-compat.sh $(or $(DSH_VERSION),latest)
 
 stage-dry: ## 演练暂存发布（--dry-run，不上传）
 	$(STAGE) --dry-run
