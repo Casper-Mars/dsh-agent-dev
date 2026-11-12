@@ -1,0 +1,86 @@
+name: dsh compatibility
+
+# 每次合并进 main 都会校验本包与当前 dsh 的兼容性；每周一次巡检上游新版本，
+# 避免「dsh 发了新版、插件还停在旧契约」这种只能靠用户踩坑才发现的问题。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 每周一 09:00（Asia/Shanghai）
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      extra_versions:
+        description: '额外校验的 dsh 版本（空格分隔，例如 0.2.2-rc.2）'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dsh-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: 解析待校验的 dsh 版本
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      latest: ${{ steps.plan.outputs.latest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: 输出兼容性声明
+        run: |
+          node -e "const p=require('./package.json');console.log('声明的 dsh 支持范围：', p.engines.dsh)"
+      - id: plan
+        name: 生成 matrix（latest 阻塞 / next 仅提示）
+        env:
+          EXTRA_DSH_VERSIONS: ${{ inputs.extra_versions }}
+        run: node scripts/dsh-versions.mjs --github
+
+  quality:
+    name: 自检（typecheck / test / 资产）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm verify:install
+      - name: 发布内容清单
+        run: npm pack --dry-run
+
+  compat:
+    name: dsh ${{ matrix.version }}（${{ matrix.target }}）
+    needs: resolve
+    runs-on: ubuntu-latest
+    # next 与手工版本只做预警：上游预发布线的破坏性变更不应卡住 main。
+    continue-on-error: ${{ matrix.blocking == false }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: 安装 → 组合 → 冷启动三层校验
+        run: bash scripts/dsh-compat.sh '${{ matrix.version }}'

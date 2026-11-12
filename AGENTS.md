@@ -13,7 +13,8 @@
 - **只读 Skill**：0.2.0 起没有进化能力，Skill 正文不会被运行时改写。
 - **人设唯一来源**：`src/persona/LEADER.md`（正文原文），由 `src/persona.ts` 读取后以 `LEADER_PERSONA` 导出，再由插件注入 **depth 0 根会话**；
   `preset-dev-leader` 不挂 persona。`dev-developer` / `dev-tester` 各用自己的 preset persona。
-- **环境基线**：dsh `0.2.1-rc.2`、Node ≥ `22.19.0`、pnpm ≥ `11.7.0`。
+- **环境基线**：dsh `>=0.2.1-rc.2 <0.3.0`（已验证 `0.2.1-rc.2` 与 `0.2.2-rc.1`）、Node ≥ `22.19.0`、pnpm ≥ `11.7.0`。
+  兼容范围**唯一真源**是 `package.json` 的 `engines.dsh`：dsh 安装插件时读它，不满足直接拒绝安装。
 
 改代码前先确认改的是哪一层：
 
@@ -34,7 +35,8 @@
 |------|--------|----------|
 | `pnpm install` | 安装 devDependencies（本包无运行时依赖） | 退出码 0，生成 `node_modules/` |
 | `pnpm typecheck` | `tsc -p tsconfig.json --noEmit` | 退出码 0，无类型错误 |
-| `pnpm test` | `vitest run`，5 个 spec 文件 | **92 passed**、退出码 0 |
+| `pnpm test` | `vitest run`，6 个 spec 文件 | **96 passed**、退出码 0 |
+| `pnpm compat` | `scripts/dsh-compat.sh`：tarball 安装 → `--dump-config` 组合 → 冷启动探针 | 每个目标三层全 `PASS`、退出码 0 |
 | `pnpm build` | `clean` → `typecheck` → `tsc -p tsconfig.server.json` → `copy-assets.mjs` | 退出码 0，产出 `dist-server/index.js`、`dist-server/cordis.patch.yml` 与 `dist-server/persona/LEADER.md` |
 | `pnpm verify:install` | 校验包内 13 个 `SKILL.md` + 5 个 references | 18 行 `PASS`、退出码 0；有 `FAIL` 退出码 1；参数 / 环境错误退出码 2 |
 | `npm pack --dry-run` | 检查发布内容 | 含 `skills/` 18 个文件、`cordis.patch.yml`、`dist-server/cordis.patch.yml`、`dist-server/persona/LEADER.md`、`scripts/verify-install.mjs`；不含 `templates/`、`src/`、`tests/`、`node_modules/` |
@@ -57,7 +59,11 @@
 | `skills/` | 13 个只读 Skill（含 `dev-test-strategy/references/`） | **唯一 Skill 源**；不新增 `templates/`，不做种子同步 |
 | `scripts/verify-install.mjs` | 18 项包内自检 | `EXPECTED_SKILLS` / `EXPECTED_REFERENCE_STACKS` 是检查清单真源 |
 | `scripts/copy-assets.mjs` | 把 `cordis.patch.yml` 复制进 `dist-server/` | 不要再引入 `templates/` / seeds 逻辑 |
-| `tests/` | domain / plugin / patch / firmware-registration / verify-install | 改契约或数量必须同步断言 |
+| `scripts/dsh-compat.sh` | 兼容性三层校验：安装准入 → patch 组合 → 冷启动探针 | 只读外部 dsh 版本，不改本仓库；临时目录用 `mktemp -d` 并清理 |
+| `scripts/compat-probe.mjs` | 冷启动探针：断言 13 Skill / 3 preset / 默认 preset | 顶层不得有副作用（被 `tests/compat-probe.spec.ts` 导入）；清单与 `verify-install.mjs` 保持一致 |
+| `scripts/dsh-versions.mjs` | 解析 npm `latest` / `next`，产出 CI matrix | 不判断版本是否满足范围，交给 dsh 安装准入 |
+| `.github/workflows/dsh-compat.yml` | push/PR main + 每周巡检 + 手动触发的兼容性校验 | `latest` 阻塞、`next` 仅提示；改动需保持 `quality` 与 `compat` 两段 |
+| `tests/` | domain / plugin / patch / firmware-registration / verify-install / compat-probe | 改契约或数量必须同步断言 |
 | `cordis.patch.yml` | bundle patch：`dev-domain` + 3 个 preset + 顶层 `tool-subagent` | 改 preset / 默认值必须跑测试并装一次核对 |
 
 ## 4. 硬规则（违反即返工）
@@ -74,7 +80,9 @@
    `systemPrompt` 缺失时只 warn 降级，不阻断 Skill 注册。
 6. **不改外部 core**：本包只依赖 dsh 标准服务（`skills` / `agents` / `systemPrompt`）；需要 core 改动时
    停下来上报，不要改其它仓库。
-7. **项目落位**：所有项目落在 `<workspace>/projects/<repo>`（`<workspace>` = `pwd -P` 的真实 cwd，
+7. **兼容性声明只有一处**：`package.json` 的 `engines.dsh`。放宽/收缩范围前必须 `pnpm compat <版本>`
+   实测通过，并同步 README 的兼容矩阵；不得为了让安装通过而直接改范围。
+8. **项目落位**：所有项目落在 `<workspace>/projects/<repo>`（`<workspace>` = `pwd -P` 的真实 cwd，
    **不是** `DSH_HOME`）。新建用 `mkdir -p` + `git init`，克隆用
    `git clone <url> "<workspace>/projects/<repo>"`；既有本地仓库原地使用，不迁移、不复制。
    禁止在 workspace 根、`<workspace>/projects` 根、`$HOME`、`~/project`、`~/agents` 下直接
