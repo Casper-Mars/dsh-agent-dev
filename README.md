@@ -115,7 +115,7 @@ dsh 在安装插件时会读这个字段（存在 `engines.dsh` 时以它为准�
 
 ### 自动校验：每次合并 main 都跑
 
-`.github/workflows/dsh-compat.yml` 在 **push 到 main / PR 到 main / 每周一 09:00 / 手动触发**时，
+`.github/workflows/dsh-compat.yml` 在 **push 到 main / PR 到 main / 每天 09:00 / 手动触发**时，
 对 npm 上的 `latest`（阻塞）与 `next`（仅提示）分别做三层校验：
 
 1. **安装准入**：把本包按发布形态 `npm pack` 后装进全新 dsh 环境，验证 `engines.dsh` 与 dsh 的判定一致；
@@ -123,6 +123,10 @@ dsh 在安装插件时会读这个字段（存在 `engines.dsh` 时以它为准�
    （schema 变更会在这里暴露）；
 3. **运行时装配**：冷启动 profile，断言 13 个 Skill 真的注册、`skills.get()` 拿得到正文、
    3 个 preset 在 roster 里、主会话默认 preset 是 `dev-leader`（服务契约变更 / 模块解析失败会在这里暴露）。
+
+**不兼容时自动开 issue**（仅定时任务与手动触发）：复用已有 open issue（label `dsh-compat`）而不重复开单，
+正文附失败 / 通过版本、声明范围与运行链接；恢复后下一次巡检自动评论并关闭。
+push / PR 的失败不开 issue——页面上已经能看到了。
 
 ### 本地跑同一条路径
 
@@ -232,7 +236,7 @@ dsh plugin --profile <p> add dsh-rsi-agent@0.1.x   # 回滚必需：旧 patch �
 
 ```text
 .
-├─ .github/workflows/dsh-compat.yml  # 兼容性校验：push/PR main + 每周巡检 + 手动触发
+├─ .github/workflows/dsh-compat.yml  # 兼容性校验：push/PR main + 每日巡检 + 手动触发；不兼容自动开 issue
 ├─ cordis.patch.yml              # bundle patch：dev-domain + 3 个 preset + 顶层 tool-subagent 覆盖
 ├─ package.json                  # engines.dsh 声明兼容范围；dsh.bundle.patch 指向 cordis.patch.yml
 ├─ src/
