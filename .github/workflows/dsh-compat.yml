@@ -37,7 +37,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: pnpm
+      # 本 job 不装依赖，不配 cache：没有 pnpm store 可存，setup-node 会在收尾时报
+      # "Path Validation Error" 并把 job 判失败。
       - name: 输出兼容性声明
         run: |
           node -e "const p=require('./package.json');console.log('声明的 dsh 支持范围：', p.engines.dsh)"
