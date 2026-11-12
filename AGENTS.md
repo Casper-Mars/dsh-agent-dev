@@ -62,7 +62,7 @@
 | `scripts/dsh-compat.sh` | 兼容性三层校验：安装准入 → patch 组合 → 冷启动探针 | 只读外部 dsh 版本，不改本仓库；临时目录用 `mktemp -d` 并清理 |
 | `scripts/compat-probe.mjs` | 冷启动探针：断言 13 Skill / 3 preset / 默认 preset | 顶层不得有副作用（被 `tests/compat-probe.spec.ts` 导入）；清单与 `verify-install.mjs` 保持一致 |
 | `scripts/dsh-versions.mjs` | 解析 npm `latest` / `next`，产出 CI matrix | 不判断版本是否满足范围，交给 dsh 安装准入 |
-| `.github/workflows/dsh-compat.yml` | push/PR main + 每周巡检 + 手动触发的兼容性校验 | `latest` 阻塞、`next` 仅提示；改动需保持 `quality` 与 `compat` 两段 |
+| `.github/workflows/dsh-compat.yml` | push/PR main + 每日巡检 + 手动触发的兼容性校验 | `latest` 阻塞、`next` 仅提示；定时/手动失败自动开 issue，恢复后自动关；改动需保持 `quality` / `compat` / `report` 三段 |
 | `tests/` | domain / plugin / patch / firmware-registration / verify-install / compat-probe | 改契约或数量必须同步断言 |
 | `cordis.patch.yml` | bundle patch：`dev-domain` + 3 个 preset + 顶层 `tool-subagent` | 改 preset / 默认值必须跑测试并装一次核对 |
 
