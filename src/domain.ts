@@ -55,7 +55,7 @@ export const DEV_DOMAIN: DevDomain = {
     skill('dev-environment', 'Agent 侧开发环境管理规程：把「环境定义」存放在工作区的 <workspace>/.agent-env/（既不是项目仓、也不是 $DSH_HOME），开工前先查后建、一 repo 一容器、交付前按账本与 label 双路核销、收尾按固定顺序回收。本技能只教判断与动作（在哪里放、先查什么、怎么复用、怎么核销），不依赖任何随 skill 分发的脚本；技术栈识别与配置编写由 agent 自己完成。'),
     skill('dev-dispatch-contract', 'Leader 派发契约：10 字段上下文卡片、preset 选择表、Developer/Tester 边界、派发即结束本轮与失败回报格式。'),
     skill('dev-quality-gate', '交付质量门：triage 与独立验收的分工、按仓库脚本跑三件套、Tester 独立重跑、报告模板与 blocker/major/minor 判定。'),
-    skill('dev-worktree-git', 'Git worktree 与分支/提交规范：分支命名、worktree 路径约定、Conventional Commits、清理流程与禁止 force push。'),
+    skill('dev-worktree-git', '项目分支规范：一个项目一条 feature 分支 + 一个 worktree，任务只产出 commit，全部验收后一个 PR 合入 main。'),
     skill('dev-test-strategy', '测试策略只做栈检测与路由：按清单文件判断技术栈，指向对应 references/<stack>.md，并给出通用测试原则与未识别栈兜底。'),
     skill('dev-role-developer', 'Developer 子 agent 的执行细则：按栈命令、ref 路由、自检维度、禁止项与交付证据格式。'),
     skill('dev-role-tester', 'Tester 子 agent 的执行细则：按栈命令、验收证据格式、边界覆盖、缺陷分级与禁止项。'),

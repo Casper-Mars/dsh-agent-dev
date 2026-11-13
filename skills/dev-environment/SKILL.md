@@ -382,8 +382,8 @@ docker ps -a --filter "label=devcontainer.local_folder=${WF}" --format '{{.Names
 ```
 1. 核销并回收容器/卷   docker rm -f dsh-<repo>-dev；docker ps -a --filter label=devcontainer.local_folder=<WF> 后 rm -f；compose down -v
                        docker volume rm dsh-<repo>-*（默认保留缓存，项目结束再删）
-2. git worktree remove <每个 worktree>
-3. git worktree prune；删本地/远端任务分支（-d 保护，确认已合入）
+2. git worktree remove <项目 worktree>
+3. git worktree prune；删项目分支（-d 保护，确认 PR 已合并）
 ```
 
 项目级收尾（最后一张卡 + 合并 PR 合并后）才动「镜像 / 全局缓存卷」；中途只删本项目的容器与

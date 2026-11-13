@@ -39,11 +39,12 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
 2. 领域 / 技术栈：node-ts（Node 22 + TypeScript 5 + pnpm 11）
 3. 背景：为什么做；关联文档链接 / Issue / 上一轮结论（写链接，不写「见上」）
 4. 目标（一句话交付物）：把 3 个 SKILL.md 从骨架补成可执行的规则（触发条件 + 流程/细则，按类型补禁止项与检查清单）
-5. 路径与分支：
+5. 路径与分支（沿用项目分支，本卡不新建）：
    - 项目根：<workspace>/projects/<repo>（绝对路径；<workspace> = `pwd -P`，不是 `DSH_HOME`；
      既有本地仓库按它实际路径写，并注明「原地使用，不迁移、不复制」）
-   - worktree：<workspace>/projects/.worktrees/<repo>-<type>-<task>
-   - 分支：feat/task-03-firmware-skills（基于 45a1443）
+   - worktree：<workspace>/projects/.worktrees/<repo>-<type>-<项目号>-<描述>（项目立项时已建好，本卡复用，勿新建）
+   - 分支：feat/proj-1a2b3c4d-xxx（项目分支，勿新建、勿切换）
+   - 本任务基线：<上一任务的 TASK_COMMIT>（首个任务为项目 BASE_SHA）
 6. 验收标准（逐条可判定）：
    - [ ] AC1 三个文件均含 `## 触发条件` / `## 步骤` / `## 禁止项` / `## 检查清单`
    - [ ] AC2 `pnpm typecheck` exit 0
@@ -55,7 +56,8 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
    - 派 Developer：`dev-role-developer` + `dev-test-strategy`
    - 派 Tester：`dev-role-tester` + `dev-test-strategy`
    - 关键词：Wiki 检索「Skill 写作规范 / 派发契约」
-9. 交付格式：分支 + commit hash；每条命令 + 退出码；AC 逐条证据；未覆盖项与风险
+9. 交付格式：项目分支 + 本任务 commit hash + diff 范围 <基线>..<commit>；
+   每条命令 + 退出码；AC 逐条证据；未覆盖项与风险（不 push、不开 PR）
 10. 交付形态与环境限制：`delivery_mode: commit|workspace`；不可写路径（如主仓库 `.git/`）、
     无审批通道、网络/凭据限制、必须降级的命令；环境由 Leader 在阶段 1.5 备好，卡片必须写
     容器名 / `WF` / 执行命令形态；子 agent 不得自行 `docker run` / `devcontainer up`，
@@ -73,6 +75,8 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
   不写进卡片就等于没有约束）。
 - 第 10 项必须显式写 `delivery_mode`；`workspace` 时还要写清「Tester 如何取得交付物」（复制路径/忽略目录）。
 - 路径写绝对路径；相对路径在子 agent 的 cwd 里可能解析不到。
+- 第 5 项必须区分「项目级」与「任务级」：分支与 worktree 是项目立项时建的，本卡只引用；
+  卡片里出现「新建分支 / 新建 worktree / 合并到 main」= 卡片不合格，会把开发流程重新拆碎。
 - 项目落位硬规则（第 5 项）：新项目 / 克隆项目一律落 `<workspace>/projects/<repo>`，`<workspace>` 用 `pwd -P` 取；
   禁止直接落在 workspace 根、`<workspace>/projects` 根、`$HOME`、`~/project`、`~/agents`。
   卡片给的外部路径要改写成 `projects/` 下并说明；用户坚持原路径才停下确认。既有本地仓库原地使用，不迁移、不复制。
@@ -172,9 +176,9 @@ subagent({
 - [ ] 每条 AC 可判定，附了判定方式（命令 / 文件检查）
 - [ ] 项目路径与 worktree 真实存在（`ls` 过）
 - [ ] 第 5 项项目根为 `<workspace>/projects/<repo>` 绝对路径（既有仓库按实际路径并注明原地使用，不迁移不复制）
-- [ ] 分支已建，基线 commit 写进卡片
+- [ ] 项目分支与 worktree 已存在（立项时建的），本任务基线 commit 写进卡片；本卡不要求新建分支/worktree
 - [ ] 约束写明只读目录、禁止 push、禁止改动的模块
-- [ ] 交付格式写明分支 + commit + 命令退出码 + 未覆盖项
+- [ ] 交付格式写明项目分支 + 任务 commit + diff 范围 + 命令退出码 + 未覆盖项
 - [ ] 第 8 项已写角色 Skill + `dev-test-strategy` 清单，且带 `STACK=… REF=… DETECT=…` 路由回报要求
       （未写 = 卡片不合格，不派发）
 - [ ] 第 10 项 `delivery_mode` 已确认（`workspace` 时写明 Tester 的取物方式）

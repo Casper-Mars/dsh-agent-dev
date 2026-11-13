@@ -35,7 +35,7 @@
 |--------|-------------------|
 | 你自己想「该怎么让 agent 写代码」 | Leader 人设有完整 6 阶段流程：对齐 → 隔离 → 环境 → 编码 → 自测 → 交付 |
 | 编码和验收是同一个人，自己证明自己对 | 编码派 `dev-developer`、验收派 `dev-tester`，**独立副本 + 独立复跑**才算通过 |
-| 每次都要口头交代测试怎么跑、worktree 怎么建 | 13 个 Skill 把环境规程、按栈测试命令、worktree/分支规范、缺陷分级全部固化 |
+| 每次都要口头交代测试怎么跑、worktree 怎么建 | 13 个 Skill 把环境规程、按栈测试命令、项目分支/PR 收口规范、缺陷分级全部固化 |
 | 子 agent 工具面靠猜，容易给出写权限 | 3 个 preset 预置工具面：Leader 可派发、Developer 可写、Tester 只读兜底 |
 | dsh 升级后插件悄悄崩 | 安装期兼容性准入 + 每次合并 main 跑「安装 → 组合 → 冷启动」三层校验 |
 
@@ -48,7 +48,7 @@
 | `dev-environment` | 唯一的环境规程：落 `<workspace>/.agent-env/`、一 repo 一容器、devcontainer 后端、交付前核销、收尾按序回收 |
 | `dev-dispatch-contract` | 派发上下文卡片、preset 选择、边界与回报格式 |
 | `dev-quality-gate` | 质量闸门（triage 六查）、独立验收分工与缺陷分级 |
-| `dev-worktree-git` | worktree / 分支 / commit 规范与写权限预检 |
+| `dev-worktree-git` | 项目分支规范：一个项目一条分支 + 一个 worktree，任务只产 commit，收口开一个 PR |
 | `dev-test-strategy` | 只做栈检测与路由，命令在 `references/<stack>.md`（Go / Node-TS / React / Harmony ArkTS / Python） |
 | `dev-role-developer` | Developer 的执行细则、自检维度与交付证据 |
 | `dev-role-tester` | Tester 的验收细则、边界覆盖与报告格式 |
@@ -96,7 +96,11 @@ dsh --profile <p> --dump-config | grep -E "dev-domain|preset-dev-"
 
 装好后主会话就是 Dev Leader。给它「需求 + 验收标准 + 约束」，它会编号 AC、拆任务、派发
 `dev-developer` 编码、再派 `dev-tester` 独立验收。Leader 不写业务代码：一律派发子 agent 编码、
-一律派发独立 Tester 验收，Leader 只做元操作（读代码 / 写交付说明 / 建 worktree 与分支 / commit 与 push / 环境管理与核销）。
+一律派发独立 Tester 验收，Leader 只做元操作（读代码 / 写交付说明 / 立项建项目分支与 worktree / commit 与 push / 开 PR / 环境管理与核销）。
+
+**Git 流程**：一个项目 = 一条 `feat/<项目号>-<描述>` 分支 + 一个 worktree；每个任务只在这条分支上提交
+（`feat(task-04): ...`），不建分支、不合并 main；全部任务验收通过后开一个 PR 合入 `main`（merge commit，
+需人确认）。
 
 ## 版本兼容性
 

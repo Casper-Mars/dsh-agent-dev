@@ -34,7 +34,7 @@ whenToUse: 需要查 Tester 的按栈命令、验收证据格式、缺陷分级�
 
 | 形态 | 识别信号 | 验收位置 |
 |------|----------|----------|
-| `commit`（默认） | 卡片给了 branch + commit，`git status --short` 为空 | `git worktree add --detach /tmp/verify-<task>-<ts> <commit>` |
+| `commit`（默认） | 卡片给了项目分支 + 任务 commit + 基线，`git status --short` 为空 | `git worktree add --detach /tmp/verify-<task>-<ts> <commit>` |
 | `workspace` | 卡片写明「未提交，工作区交付」 | `rsync -a --exclude node_modules --exclude .git <worktree>/ /tmp/verify-<task>-<ts>/`，只在副本内跑命令 |
 
 `workspace` 形态的报告必须给齐三样：副本绝对路径、`git diff` 原文（或 `git status --short` + 文件清单）、
@@ -137,7 +137,7 @@ ohpm install
 ## 检查清单
 
 - [ ] 已读本文件与 `dev-test-strategy`，回报含 `STACK=… REF=… DETECT=…`；
-- [ ] 被验对象含分支 + commit + base，工作区干净（`workspace` 形态改为副本路径 + diff 指纹）；
+- [ ] 被验对象含项目分支 + 本任务 commit + 基线（diff 范围 `<基线>..<commit>`），工作区干净（`workspace` 形态改为副本路径 + diff 指纹）；
 - [ ] 环境独立复现，版本与安装命令已记录；
 - [ ] AC 逐条有 pass/fail 与命令证据，含至少一条独立断言；
 - [ ] 边界与失败路径已覆盖，浏览器场景含异常路径；

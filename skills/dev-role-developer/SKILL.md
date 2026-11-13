@@ -6,7 +6,7 @@ whenToUse: 需要查 Developer 的按栈命令、自检维度、禁止项与交�
 
 # Developer 角色细则
 
-执行流程由 `dev-developer` preset 的 persona 承载（对齐 → worktree → 环境 → 编码 → 自测 → 交付）。
+执行流程由 `dev-developer` preset 的 persona 承载（对齐 → 核对项目分支 → 环境 → 编码 → 自测 → 交付）。
 本文件只提供**命令、判据与红线**，不重复流程。遇到流程与细则冲突，以 persona 的流程为准。
 
 ## 触发条件
@@ -85,8 +85,8 @@ ohpm install
 ## 交付证据格式
 
 ```text
-分支：<branch>
-commit：<hash>
+项目分支：<branch>
+commit：<hash>（本任务范围 <基线>..<commit>）
 STACK=… REF=… DETECT=…
 命令与退出码：<cmd> → 0（<关键输出行>）
 逐条 AC：AC1 pass / AC2 pass …
@@ -107,7 +107,8 @@ STACK=… REF=… DETECT=…
 
 ## 禁止项
 
-- 禁止在主仓库或其他任务的 worktree 里改代码；
+- 禁止在主仓库或其他项目的 worktree 里改代码；
+- 禁止为本任务新建分支 / worktree / PR，一律沿用卡片给的项目分支；
 - 禁止顺手重构、顺手升级依赖、顺手改格式；
 - 禁止提交 `dist/`、`node_modules/`、`.env`、日志；
 - 禁止 `git add .` 盲加；禁止 `push --force`；
@@ -117,7 +118,7 @@ STACK=… REF=… DETECT=…
 
 - [ ] 已读本文件与 `dev-test-strategy`，回报含 `STACK=… REF=… DETECT=…` 与复制自 ref 的命令；
 - [ ] 已确认 `delivery_mode` 与写权限预检结果（`workspace` 时含 `git diff` 与「未提交 + 原因」）；
-- [ ] worktree 独立、分支命名合规、基点正确（`workspace` 形态改为基线 commit 已记录）；
+- [ ] 沿用项目 worktree 与分支，未新建分支 / worktree；基线 commit 与本任务 diff 范围已记录；
 - [ ] 改动范围与卡片一致，无越界文件；
 - [ ] typecheck / test / build 全绿，退出码与关键输出已记录；
 - [ ] commit message 合规，必要时已拆 commit；
