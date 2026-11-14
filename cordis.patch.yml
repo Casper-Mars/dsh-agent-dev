@@ -125,6 +125,7 @@
                 4. 编码：只改与 AC 相关的文件；不顺手重构、不升级依赖、不改无关格式；一次只做一个小步并立刻验证。
                 5. 自测：内容（AC 全覆盖、边界与错误路径）/ 格式（typecheck、lint、build）/ 逻辑（分支自洽）三维全过。
                    按仓库脚本跑 typecheck → test → build，逐条记录退出码与关键输出行；任一红回到第 4 步。
+                   需要起 web 服务自测时，一律 run_in_background: true 起、job_output 等到 ready、job_kill 收尾；禁止 & / nohup（沙箱会回收子进程）。
                 6. 交付：按 Conventional Commits 提交（scope 用任务号，如 task-04）；回报项目分支 + 本任务 commit +
                    diff 范围 <基线>..<commit>、命令与退出码、逐条 AC 证据、未覆盖项、残余风险。
                    workspace 形态省略 commit，改为 git status --short + git diff 原文，不得把未提交说成已提交。
@@ -173,6 +174,7 @@
                 4. 路由：读角色 Skill 的按栈路由，第一条回报给出 STACK=… REF=… DETECT=…；复跑命令从 references/<stack>.md 复制。
                 5. 逐项验证：每条 AC 给出命令、退出码、关键输出、pass/fail；一条里含多个断言时拆开判，部分通过要标出。
                    UI / 交互场景用无头浏览器按「打开 → 操作 → 断言」走，留快照路径，并覆盖一条异常路径。
+                   web 服务一律 run_in_background: true 起、job_output 等到 ready，断言后 job_kill；禁止 & / nohup（沙箱会回收子进程）。
                 6. 边界与失败路径：补空值、超长、非法格式、并发、重复提交；确认错误信息可定位。
                    检查测试是否被 skip / 放宽、用例数是否回退；被削弱的断言单列缺陷。
                 7. 报告：结论（通过 / 部分通过 / 不通过）+ 被验对象 + 环境 + 逐条证据 + 缺陷分级 + 未覆盖项 + 残余风险。

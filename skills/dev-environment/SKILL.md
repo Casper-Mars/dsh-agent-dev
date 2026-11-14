@@ -417,6 +417,7 @@ docker ps -a --filter "label=devcontainer.local_folder=${WF}" --format '{{.Names
 
 ## 禁止项
 
+- 禁止在 agent 容器的前台 bash 里用 `&` / `nohup` 起 web 服务：Linux 沙箱是 bwrap 私有 PID namespace，调用一结束就会连子进程一起回收。临时验证必须 `run_in_background: true` 起服务，`job_output` 等到 ready，`curl` 断言后 `job_kill` 收尾；正式验收仍按第 7 节进项目容器。
 - 禁止把环境定义写进项目仓（`.devcontainer/`、`Dockerfile`、`.env`、`make env` 一律不落仓库）。
 - 禁止在 agent 自己的容器内安装 go / node / python 等语言 toolchain；编码任务一律进项目容器。
 - 禁止用宿主路径拼接文件读写（读不到且会触发沙箱审批）；文件操作走容器内路径。

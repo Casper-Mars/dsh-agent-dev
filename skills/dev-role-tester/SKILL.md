@@ -78,6 +78,14 @@ ohpm install
 ./hvigorw clean && ./hvigorw assembleHap --mode module -p product=default
 ```
 
+## Web 服务验收（必须后台起服务）
+
+- 服务用 `run_in_background: true` 起，拿到 job id；`job_output(wait=true)` 等到日志出现 ready / listening 再断言；
+- 断言用独立 `curl` 调用（状态码 + 关键响应片段），不要只看启动日志；
+- 验收结束必须 `job_kill`，报告里写 job id 与 kill 结果；
+- **禁止** `cmd &` / `nohup cmd &`：Linux 沙箱是 bwrap 私有 PID namespace，前台调用结束会连子进程一起回收，服务必然没起来；
+- 正式验收优先在项目容器内起整套服务（见 `dev-environment` 第 7 节 compose），agent 容器只做快速冒烟。
+
 ## 浏览器场景（UI / 交互）
 
 - 按「打开 → 操作 → 断言」三步走，每步留证据（快照或截图路径）；
