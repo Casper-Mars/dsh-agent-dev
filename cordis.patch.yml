@@ -9,7 +9,7 @@
 - insert:
     - id: dev-domain
       name: dsh-agent-dev
-      inject: ['skills', 'agents']
+      inject: ['agents']
 
     - id: agent-preset-registry
       name: '@deepseek-ai/dsh-agent-preset-registry'
@@ -34,6 +34,8 @@
         description: 开发领域调度者：拆解需求、派发子任务、验收产出。
         order: 10
         plugins:
+          - id: dev-assets-leader
+            name: dsh-agent-dev/assets/leader
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-bash
@@ -107,6 +109,8 @@
         description: 编码执行者：只做理解任务、在项目分支上编码、自测、交付。
         order: 20
         plugins:
+          - id: dev-assets-developer
+            name: dsh-agent-dev/assets/developer
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
@@ -159,6 +163,8 @@
         description: 验证执行者：只做复现、验收与报告，不改业务代码。
         order: 30
         plugins:
+          - id: dev-assets-tester
+            name: dsh-agent-dev/assets/tester
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:

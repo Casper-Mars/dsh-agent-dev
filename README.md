@@ -125,8 +125,10 @@ dsh 在安装插件时会读这个字段（存在 `engines.dsh` 时以它为准�
 1. **安装准入**：把本包按发布形态 `npm pack` 后装进全新 dsh 环境，验证 `engines.dsh` 与 dsh 的判定一致；
 2. **patch 组合**：`dsh --profile <p> --dump-config` 能把 `dev-domain` 与 3 个 preset 组进配置树
    （schema 变更会在这里暴露）；
-3. **运行时装配**：冷启动 profile，断言 13 个 Skill 真的注册、`skills.get()` 拿得到正文、
-   3 个 preset 在 roster 里、主会话默认 preset 是 `dev-leader`（服务契约变更 / 模块解析失败会在这里暴露）。
+3. **运行时装配**：冷启动 profile，断言 skills 服务契约可用、3 个 preset 在 roster 里、
+   每个 preset 都声明了自己的资产插件、主会话默认 preset 是 `dev-leader`
+   （服务契约变更 / 模块解析失败会在这里暴露）。
+   逐 preset 的技能可见性不在宿主层断言——那是 preset 层的事实，由部署侧验收脚本负责。
 
 **不兼容时自动开 issue**（仅定时任务与手动触发）：复用已有 open issue（label `dsh-compat`）而不重复开单，
 正文附失败 / 通过版本、声明范围与运行链接；恢复后下一次巡检自动评论并关闭。
@@ -151,11 +153,13 @@ make compat DSH_VERSION=0.2.2-rc.2   # 等价写法
 
 ## 运行时装配
 
-1. `cordis.patch.yml` 插入 `dev-domain` 插件、`agent-preset-registry`（`default: dev-leader`）与 3 个 preset；
-2. 插件 `apply()` 从 `ctx.skills` 注册 13 个 Skill（正文读 `skills/<name>/SKILL.md`），注册中途失败会原子回滚，卸载时按 LIFO 反注册；
-3. 插件监听 `agent/created`，只给 **depth 0** 根 agent 注入 `LEADER_PERSONA`；子 agent 使用各自 preset 的 persona，不继承 Leader 人设。
+1. `cordis.patch.yml` 插入 `dev-domain`（宿主层）、`agent-preset-registry`（`default: dev-leader`）与 3 个 preset；
+2. **每个 preset 首项挂自己的资产插件**：`dsh-agent-dev/assets/leader`（6 个 Skill）、`/assets/developer`（7 个）、`/assets/tester`（4 个）；
+   注册发生在该 preset 的 scope 层，三个角色的技能面互不串味；共享技能（如 `dev-environment`）在多个 preset 里各自注册一份；
+3. `dev-domain` 监听 `agent/created`，只给 **depth 0 且 preset 为 `dev-leader`** 的根 agent 注入 `LEADER_PERSONA`；
+   Developer/Tester 的人设由各自 preset 内的 `@deepseek-ai/dsh-persona` 提供。
 
-`inject` 只声明 `['skills', 'agents']`；`systemPrompt` 是 per-agent 服务，缺失时只 warn 降级，不阻断 Skill 注册。
+`dev-domain` 的 `inject` 只声明 `['agents']`（Skill 注册已移到 preset 层）；`systemPrompt` 是 per-agent 服务，缺失时只 warn 降级。
 
 两条独立路径，不要混：
 
@@ -245,7 +249,11 @@ dsh plugin --profile <p> add dsh-rsi-agent@0.1.x   # 回滚必需：旧 patch �
 ├─ package.json                  # engines.dsh 声明兼容范围；dsh.bundle.patch 指向 cordis.patch.yml
 ├─ src/
 │  ├─ index.ts                   # 包入口：re-export 插件三要素与领域数据
-│  ├─ plugin.ts                  # Cordis 插件：inject ['skills','agents']；注册 13 个 Skill；depth 0 注入 persona
+│  ├─ plugin.ts                  # 宿主层插件：inject ['agents']；depth 0 且 preset=dev-leader 时注入 persona
+│  ├─ assets.ts                  # 资产共享实现：按名字取 Skill 的工厂 + 三份技能清单
+│  ├─ assets-leader.ts           # preset 层插件：Leader 的 6 个 Skill
+│  ├─ assets-developer.ts        # preset 层插件：Developer 的 7 个 Skill
+│  ├─ assets-tester.ts           # preset 层插件：Tester 的 4 个 Skill
 │  ├─ domain.ts                  # DEV_DOMAIN：id / version / displayName / persona / 13 个 Skill 元数据
 │  ├─ persona.ts                 # LEADER_PERSONA：读 persona/LEADER.md 导出人设正文
 │  ├─ persona/LEADER.md          # Leader 人设正文原文（一整块 markdown，唯一来源）

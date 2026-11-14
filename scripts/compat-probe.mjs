@@ -79,21 +79,13 @@ async function main() {
 
   try {
     const skills = ctx.get('skills')
-    if (skills === undefined || typeof skills.list !== 'function') {
-      fail('ctx.skills 缺失或不支持 list()：dsh-skill 服务契约可能已变更')
+    if (skills === undefined || typeof skills.list !== 'function' || typeof skills.get !== 'function') {
+      fail('ctx.skills 缺失或缺少 list()/get()：dsh-skill 服务契约可能已变更')
     } else {
+      // 领域 Skill 在各自 preset 层，宿主层读不到；这里只确认服务契约可用。
       const list = await skills.list()
-      const names = new Set(list.map((item) => item.name))
-      const missing = EXPECTED_SKILLS.filter((name) => !names.has(name))
-      if (missing.length === 0) pass(`${EXPECTED_SKILLS.length} 个领域 Skill 全部可见`)
-      else fail(`缺少领域 Skill：${missing.join('、')}`)
-
-      const definition = await skills.get('dev-quality-gate')
-      if (definition !== undefined && typeof definition.content === 'string' && definition.content.length > 0) {
-        pass('skills.get("dev-quality-gate") 返回正文')
-      } else {
-        fail('skills.get("dev-quality-gate") 未返回正文')
-      }
+      if (Array.isArray(list)) pass('skills.list() 契约可用（领域 Skill 在 preset 层注册）')
+      else fail('skills.list() 未返回数组')
     }
 
     const presets = ctx.get('agentPresets')
@@ -109,6 +101,16 @@ async function main() {
       const defaultId = presets.defaultId
       if (defaultId === EXPECTED_DEFAULT_PRESET) pass(`主会话默认 preset = ${defaultId}`)
       else fail(`主会话默认 preset 是 "${String(defaultId)}"，期望 "${EXPECTED_DEFAULT_PRESET}"`)
+
+      // roster 若带插件列表，就验证每个 preset 都声明了自己的资产插件。
+      const assets = { 'dev-leader': 'dsh-agent-dev/assets/leader', 'dev-developer': 'dsh-agent-dev/assets/developer', 'dev-tester': 'dsh-agent-dev/assets/tester' }
+      for (const [presetId, moduleName] of Object.entries(assets)) {
+        const own = roster.find((item) => (item.id ?? item.config?.id) === presetId)
+        const declared = own?.plugins ?? own?.config?.plugins
+        if (!Array.isArray(declared)) continue
+        if (declared.some((entry) => String(entry?.name ?? '').includes(moduleName))) pass(`${presetId} 声明了 ${moduleName}`)
+        else fail(`${presetId} 未声明 ${moduleName}：该 preset 的技能不会进 preset 层`)
+      }
     }
   } catch (error) {
     const detail = error instanceof Error ? (error.stack ?? error.message) : String(error)

@@ -74,7 +74,7 @@ describe('领域插件条目', () => {
     const entry = byId('dev-domain')
     expect(entry.name).toBe('dsh-agent-dev')
     expect(entry.config).toBeUndefined()
-    expect((entry as unknown as { inject?: string[] }).inject).toEqual(['skills', 'agents'])
+    expect((entry as unknown as { inject?: string[] }).inject).toEqual(['agents'])
   })
 })
 
