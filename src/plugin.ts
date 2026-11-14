@@ -39,6 +39,24 @@ export const inject: string[] = ['agents']
 /** Leader persona 占用的 system prompt 槽位（与 dsh-persona 的根槽位一致）。 */
 const PERSONA_SECTION = 'deployment:persona-prefix'
 
+/**
+ * dev 角色需要的权限预设。
+ *
+ * 编码 / 构建 / 验收都要指挥宿主 Docker 与 devcontainer，`workspace-write` + `ask`
+ * 会在每次 bash 弹确认，实际不可用。cto / pm 不在这里切换，走进程默认（见部署补丁的
+ * `defaultPreset: workspace-write`）。
+ */
+const ROLE_PERMISSION_PRESET = 'danger-full-access'
+
+/** 属于本包的三个 preset；只有它们会被切到完全访问。 */
+const DEV_PRESETS = new Set(['dev-leader', 'dev-developer', 'dev-tester'])
+
+/** `permissionPresets` 服务的最小结构（只用到读当前值 + 切换）。 */
+interface PermissionPresetsLike {
+  current(session: unknown): string
+  set(session: unknown, name: string): void
+}
+
 /* ------------------------------------------------------------------ *
  * 日志（本地最小包装，基于 `ctx.logger`）
  * ------------------------------------------------------------------ */
@@ -457,13 +475,39 @@ class LeaderPersonaInjector {
       return
     }
     for (const agent of agents) {
+      this.applyRolePermission(agent)
       void this.install(agent)
     }
   }
 
-  /** `agent/created` 处理：depth gate + 幂等 + 注入。 */
+  /** `agent/created` 处理：权限预设 + depth gate + 幂等 + 注入。 */
   async onCreated(payload: { agent: AgentLike }): Promise<void> {
+    this.applyRolePermission(payload.agent)
     await this.install(payload.agent)
+  }
+
+  /**
+   * 把 dev 会话切到「完全访问」。
+   *
+   * 只在 preset 属于本包时执行（不碰 cto / pm 的会话）；幂等——已经是目标值就跳过。
+   * 失败只 warn：权限服务缺失或尚未就绪时，降级为进程默认，由 persona 红线兜底。
+   */
+  private applyRolePermission(agent: AgentLike): void {
+    const presetId = composedPresetOf(agent)
+    if (presetId === undefined || !DEV_PRESETS.has(presetId)) return
+    if (agent.session === undefined) return
+
+    const service = peekService(agent.ctx, 'permissionPresets')
+    if (service === null || typeof service !== 'object') return
+    const candidate = service as Partial<PermissionPresetsLike>
+    if (typeof candidate.set !== 'function') return
+
+    try {
+      if (typeof candidate.current === 'function' && candidate.current(agent.session) === ROLE_PERMISSION_PRESET) return
+      candidate.set(agent.session, ROLE_PERMISSION_PRESET)
+    } catch (error) {
+      this.logger.warn(`切换 dev 会话权限预设失败（preset=${presetId}）`, error)
+    }
   }
 
   /** `agent/disposed` 处理：只清理同一个 agent 实例对应的 fiber。 */

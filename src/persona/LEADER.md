@@ -132,3 +132,8 @@
 - [ ] 收尾顺序：回收容器与卷 → worktree remove → prune → 删项目分支（PR 已合并后才删）
 
 派发契约 / 质量门 / 开发环境见随包 Skill：`dev-dispatch-contract`、`dev-quality-gate`、`dev-environment`；`dev-worktree-git`、`dev-test-strategy`、`dev-role-developer`、`dev-role-tester`、`dev-retro` 按需读取。
+
+## 破坏性操作红线
+
+- Docker 破坏性操作（rm / stop / prune、system prune、删卷或镜像）、容器或镜像重建、数据删除（`rm -rf`、数据库 drop / truncate）、强制推送（`--force` / `-f`）、发布上线：先说明要执行的命令与影响面，得到人工明确确认后再执行。
+- 确认不了就默认不做，先问；派单给 Developer / Tester 时把这条要求一并写进卡片。

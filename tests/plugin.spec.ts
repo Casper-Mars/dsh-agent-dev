@@ -429,6 +429,67 @@ describe('Leader persona 注入', () => {
 })
 
 /* ------------------------------------------------------------------ *
+ * 2.1 权限预设（dev 会话切到完全访问）
+ * ------------------------------------------------------------------ */
+
+function makePermissionService(current = 'workspace-write') {
+  const calls: string[] = []
+  return {
+    calls,
+    service: {
+      current: () => current,
+      set: (_session: unknown, name: string) => { calls.push(name) },
+    },
+  }
+}
+
+describe('dev 会话的权限预设', () => {
+  it.each(['dev-leader', 'dev-developer', 'dev-tester'])('%s → 切到 danger-full-access', async (preset) => {
+    const permission = makePermissionService()
+    const { context } = createHostContext()
+    apply(context)
+
+    const agent = makeAgent(`perm-${preset}`, 0, true, preset)
+    agent.ctx.setService('permissionPresets', permission.service)
+    await context.emit('agent/created', { agent, source: 'test' })
+
+    expect(permission.calls).toEqual(['danger-full-access'])
+  })
+
+  it.each(['cto', 'pm'])('%s → 不动权限（走进程默认）', async (preset) => {
+    const permission = makePermissionService()
+    const { context } = createHostContext()
+    apply(context)
+
+    const agent = makeAgent(`perm-${preset}`, 0, true, preset)
+    agent.ctx.setService('permissionPresets', permission.service)
+    await context.emit('agent/created', { agent, source: 'test' })
+
+    expect(permission.calls).toEqual([])
+  })
+
+  it('已经是完全访问 → 不再重复切换', async () => {
+    const permission = makePermissionService('danger-full-access')
+    const { context } = createHostContext()
+    apply(context)
+
+    const agent = makeAgent('perm-same', 0, true, 'dev-leader')
+    agent.ctx.setService('permissionPresets', permission.service)
+    await context.emit('agent/created', { agent, source: 'test' })
+
+    expect(permission.calls).toEqual([])
+  })
+
+  it('权限服务缺失 → 不抛错（降级为进程默认）', async () => {
+    const { context } = createHostContext()
+    apply(context)
+
+    const agent = makeAgent('perm-missing', 0, true, 'dev-leader')
+    await expect(context.emit('agent/created', { agent, source: 'test' })).resolves.toBeUndefined()
+  })
+})
+
+/* ------------------------------------------------------------------ *
  * 3. 卸载
  * ------------------------------------------------------------------ */
 
