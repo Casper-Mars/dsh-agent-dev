@@ -65,9 +65,9 @@
 
 | preset | 用途 | 工具面 |
 |--------|------|--------|
-| `dev-leader` | 主会话默认 preset / 调度者 | fs / bash / skill / todo / subagent / subagent-control / list-agents |
-| `dev-developer` | 编码执行者（写操作必须显式指定） | fs / bash / skill / todo + Developer persona |
-| `dev-tester` | 验证执行者 / 子 agent 漏传兜底 | fs / bash / skill / todo + Tester persona |
+| `dev-leader` | 主会话默认 preset / 调度者 | fs / bash / jobs / skill / todo / subagent / subagent-control / list-agents |
+| `dev-developer` | 编码执行者（写操作必须显式指定） | fs / bash / jobs / skill / todo + Developer persona |
+| `dev-tester` | 验证执行者 / 子 agent 漏传兜底 | fs / bash / jobs / skill / todo + Tester persona |
 
 ## 快速开始
 

@@ -106,6 +106,7 @@ describe('主会话工具面扩展', () => {
       plugins: Array<{ id: string; name: string; group?: boolean; isolate?: Record<string, unknown> }>
     }
     const ids = config.plugins.map((plugin) => plugin.id)
+    expect(ids).toContain('tool-jobs')
     expect(ids).toContain('tool-schedule')
 
     const planning = config.plugins.find((plugin) => plugin.id === 'planning')
@@ -123,6 +124,7 @@ describe('主会话工具面扩展', () => {
     for (const id of ['preset-dev-developer', 'preset-dev-tester']) {
       const config = byId(id).config as { plugins: Array<{ id: string }> }
       const ids = config.plugins.map((plugin) => plugin.id)
+      expect(ids).toContain('tool-jobs')
       expect(ids).not.toContain('tool-schedule')
       expect(ids).not.toContain('planning')
       expect(ids).not.toContain('workflow')
