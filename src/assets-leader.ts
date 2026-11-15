@@ -5,6 +5,7 @@
  * 由 `preset-dev-leader.plugins` 首项挂载，注册进该 preset 的 scope 层。
  */
 import { createAssetsPlugin, LEADER_SKILLS, pickSkills } from './assets.js'
+import { LEADER_PERSONA } from './persona.js'
 
 /** 插件唯一标识（必须与 `cordis.patch.yml` 中的 `dev-assets-leader` 一致）。 */
 export const name = 'dev-assets-leader'
@@ -12,7 +13,8 @@ export const name = 'dev-assets-leader'
 /** 不声明注入：Skill 注册走非严格探测，服务缺失时降级为 warn。 */
 export const inject: string[] = []
 
-const plugin = createAssetsPlugin(name, pickSkills(LEADER_SKILLS))
+// persona 随 preset 组合启停：宿主层注入无法响应「首轮前切换 preset」。
+const plugin = createAssetsPlugin(name, pickSkills(LEADER_SKILLS), LEADER_PERSONA)
 
 /** 插件装配入口。 */
 export const apply = plugin.apply

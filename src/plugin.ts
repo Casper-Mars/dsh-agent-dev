@@ -10,10 +10,9 @@
  * 领域数据来自 `src/domain.ts`，Skill 正文与 frontmatter 由 `src/firmware.ts`
  * 的加载器读取。
  */
-import type { Context, Fiber } from '@deepseek-ai/cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import type { SkillRegistration } from '@deepseek-ai/dsh-skill'
 import { DEV_DOMAIN } from './domain.js'
-import { LEADER_PERSONA } from './persona.js'
 import {
   planFirmwareSkillRegistrations,
   type FirmwareSkill,
@@ -29,15 +28,10 @@ export const ROLE = 'dev-leader'
 /**
  * 依赖的 dsh 标准服务。
  *
- * `skills` 负责领域 Skill 注册；`agents` 提供 agent 注册表与生命周期事件。
- * persona 所需的 `systemPrompt` 不在此声明：它是 **per-agent** 服务，
- * 由每个 agent 的 scope 通过 `agent.ctx.inject(['systemPrompt'], ...)` 获取；
- * 缺失时只 warn 降级，不阻断 Skill 注册。
+ * 只需要 `agents`：监听 agent 生命周期，把 dev 会话的权限预设切到完全访问。
+ * persona 不再在宿主层注入——它随 preset 层的 `dev-assets-leader` 注册。
  */
 export const inject: string[] = ['agents']
-
-/** Leader persona 占用的 system prompt 槽位（与 dsh-persona 的根槽位一致）。 */
-const PERSONA_SECTION = 'deployment:persona-prefix'
 
 /**
  * dev 角色需要的权限预设。
@@ -437,22 +431,19 @@ function composedPresetOf(agent: AgentLike): string | undefined {
   return undefined
 }
 
-interface PersonaEntry {
-  readonly agent: AgentLike
-  readonly fiber: Fiber
-}
-
 /**
- * 根会话 Leader persona 注入器。
+ * 根会话权限切换器。
  *
- * - `agent/created`：显式 depth gate，仅 depth 0；同一 agent 幂等；
- * - `agent/disposed`：dispose 自己记录的 fiber 并从 Map 删除；
- * - `installExisting()`：补装插件加载前已经存在的 agent；
- * - `disposeAll()`：插件卸载时清理所有残留 fiber。
+ * persona 已下沉到 preset 层的 `dev-assets-leader`；宿主层这里只保留一件
+ * 必须发生在 agent 创建时的事：把 dev 会话的权限预设切到 `danger-full-access`。
+ * 它不能放进 preset（权限是会话级状态，不是 preset 组合的一部分），
+ * 因此仍由宿主插件监听 agent 生命周期。
+ *
+ * - `agent/created`：切权限（仅 dev presets，幂等）；
+ * - `installExisting()`：补装插件加载前已存在的 agent；
+ * - 权限服务缺失 / 未就绪时只 warn，降级为进程默认（人设红线兜底）。
  */
-class LeaderPersonaInjector {
-  private readonly entries = new Map<string, PersonaEntry>()
-  private readonly injected = new WeakSet<object>()
+class LeaderPermissionSwitcher {
   private readonly warned = new Set<string>()
 
   constructor(
@@ -464,33 +455,29 @@ class LeaderPersonaInjector {
   installExisting(): void {
     const registry = readAgentRegistry(this.ctx)
     if (registry === undefined) {
-      this.warnOnce('agents-missing', 'ctx.agents 不可用，跳过已存在 agent 的 Leader persona 补装')
+      this.warnOnce('agents-missing', 'ctx.agents 不可用，跳过已存在 agent 的权限预设切换')
       return
     }
     let agents: readonly AgentLike[]
     try {
       agents = registry.list()
     } catch (error) {
-      this.logger.warn('读取 ctx.agents.list() 失败，跳过 Leader persona 补装', error)
+      this.logger.warn('读取 ctx.agents.list() 失败，跳过权限预设切换', error)
       return
     }
-    for (const agent of agents) {
-      this.applyRolePermission(agent)
-      void this.install(agent)
-    }
+    for (const agent of agents) this.applyRolePermission(agent)
   }
 
-  /** `agent/created` 处理：权限预设 + depth gate + 幂等 + 注入。 */
-  async onCreated(payload: { agent: AgentLike }): Promise<void> {
+  /** `agent/created` 处理：只做权限预设切换。 */
+  onCreated(payload: { agent: AgentLike }): void {
     this.applyRolePermission(payload.agent)
-    await this.install(payload.agent)
   }
 
   /**
    * 把 dev 会话切到「完全访问」。
    *
    * 只在 preset 属于本包时执行（不碰 cto / pm 的会话）；幂等——已经是目标值就跳过。
-   * 失败只 warn：权限服务缺失或尚未就绪时，降级为进程默认，由 persona 红线兜底。
+   * 失败只 warn：权限服务缺失或尚未就绪时，降级为进程默认，由人设红线兜底。
    */
   private applyRolePermission(agent: AgentLike): void {
     const presetId = composedPresetOf(agent)
@@ -510,103 +497,6 @@ class LeaderPersonaInjector {
     }
   }
 
-  /** `agent/disposed` 处理：只清理同一个 agent 实例对应的 fiber。 */
-  onDisposed(agent: AgentLike): void {
-    const entry = this.entries.get(agent.id)
-    if (entry === undefined) return
-    if (entry.agent !== agent) {
-      this.logger.warn(
-        `agent/disposed 的实例与记录不一致（id=${agent.id}），保留当前 fiber 交给它自己的 disposed 清理`,
-      )
-      return
-    }
-    void this.disposeEntry(entry, 'agent disposed')
-  }
-
-  /** 插件卸载：清理所有仍记录的 fiber（等待全部释放完成）。 */
-  async disposeAll(): Promise<void> {
-    await Promise.all([...this.entries.values()].map((entry) => this.disposeEntry(entry, 'plugin unload')))
-  }
-
-  private async install(agent: AgentLike): Promise<void> {
-    if (agent === null || typeof agent !== 'object') return
-    if (this.injected.has(agent)) return
-    this.injected.add(agent)
-
-    let depth: number
-    try {
-      depth = delegationDepthOf(agent)
-    } catch (error) {
-      this.logger.warn(`无法读取 agent ${String(agent.id)} 的 delegationDepth，跳过 persona 注入`, error)
-      return
-    }
-    if (depth !== 0) return
-
-    // 单 host 装多个角色包时，每个包都会收到同一条 `agent/created`；
-    // 只给属于本角色的 preset 注入 Leader 人设，否则会压到 cto/pm 的会话上。
-    const presetId = composedPresetOf(agent)
-    if (presetId !== undefined && presetId !== ROLE) return
-
-    const systemPrompt = peekService(agent.ctx, 'systemPrompt')
-    if (!isSystemPromptLike(systemPrompt)) {
-      this.warnOnce(
-        'systemPrompt-missing',
-        'agent scope 缺少 systemPrompt 服务，Leader persona 降级为不注入（Skill 注册不受影响）',
-      )
-      // 不记住这次失败：systemPrompt 之后可用时（例如 resume）仍要能补装。
-      this.injected.delete(agent)
-      return
-    }
-
-    const existing = this.entries.get(agent.id)
-    if (existing !== undefined) {
-      if (existing.agent === agent) return
-      // 同一 id 的新 agent（resume / clear）：先释放旧实例的 fiber。
-      void this.disposeEntry(existing, 'same id replaced by a new agent instance')
-    }
-
-    let fiber: Fiber
-    try {
-      fiber = agent.ctx.inject(['systemPrompt'], (scoped: Context) => {
-        scoped.effect(() => {
-          const prompt = (scoped as unknown as { systemPrompt: SystemPromptLike }).systemPrompt
-          const disposeSection = prompt.section({
-            name: PERSONA_SECTION,
-            order: prompt.getSectionOrder('DEPLOYMENT_PERSONA_PREFIX'),
-            text: LEADER_PERSONA,
-          })
-          return disposeSection
-        }, 'dev-domain:leader-persona')
-      }) as Fiber
-    } catch (error) {
-      this.logger.warn(`为 agent ${String(agent.id)} 注入 Leader persona 失败`, error)
-      this.injected.delete(agent)
-      return
-    }
-
-    const entry: PersonaEntry = { agent, fiber }
-    this.entries.set(agent.id, entry)
-
-    try {
-      await fiber
-    } catch (error) {
-      this.logger.warn(`Leader persona fiber 加载失败（agent=${String(agent.id)}）`, error)
-      this.injected.delete(agent)
-      if (this.entries.get(agent.id) === entry) this.entries.delete(agent.id)
-    }
-  }
-
-  private async disposeEntry(entry: PersonaEntry, reason: string): Promise<void> {
-    if (this.entries.get(entry.agent.id) === entry) {
-      this.entries.delete(entry.agent.id)
-    }
-    try {
-      await entry.fiber.dispose()
-    } catch (error) {
-      this.logger.warn(`释放 Leader persona fiber 失败（${reason}）`, error)
-    }
-  }
-
   private warnOnce(key: string, message: string): void {
     if (this.warned.has(key)) return
     this.warned.add(key)
@@ -618,25 +508,19 @@ class LeaderPersonaInjector {
  * 插件装配
  * ------------------------------------------------------------------ */
 
-/** 插件装配入口：只做 Leader persona 生命周期；领域 Skill 由三个 assets 插件在 preset 层注册。 */
+/** 插件装配入口：只做 dev 会话的权限预设切换；persona 与 Skill 都在 preset 层。 */
 export function apply(ctx: Context): void {
   const logger = createDomainLogger(readService(ctx, 'logger'), 'dev-domain')
-
-  // 1) Leader persona：agent 生命周期监听 + 插件卸载统一清理。
-  const personas = new LeaderPersonaInjector(ctx, logger)
+  const switcher = new LeaderPermissionSwitcher(ctx, logger)
   const events = ctx as unknown as AgentEventContext
 
   ctx.effect(() => {
-    const offCreated = events.on('agent/created', (payload) => personas.onCreated(payload))
-    const offDisposed = events.on('agent/disposed', ({ agent }) => personas.onDisposed(agent))
-
-    return async () => {
+    const offCreated = events.on('agent/created', (payload) => switcher.onCreated(payload))
+    return () => {
       offCreated()
-      offDisposed()
-      await personas.disposeAll()
     }
-  }, 'dev-domain:leader-persona-lifecycle')
+  }, 'dev-domain:permission-preset')
 
-  // 3) 补装插件加载前已经存在的根 agent（幂等，created 仍会正常触发）。
-  personas.installExisting()
+  // 补装插件加载前已经存在的 agent（幂等，created 仍会正常触发）。
+  switcher.installExisting()
 }

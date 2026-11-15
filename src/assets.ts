@@ -64,14 +64,35 @@ export function pickSkills(names: readonly string[]): readonly FirmwareSkill[] {
  * 构造一个 preset 层的资产插件。
  * @param id - 插件实例 id（与 `cordis.patch.yml` 逐字一致）。
  * @param skills - 该 preset 可见的领域 Skill。
+ * @param persona - 该 preset 的根会话人设；给了就在 scope 里注册
+ *   `deployment:persona-prefix`（人设必须随 preset 组合启停，见下）。
  */
-export function createAssetsPlugin(id: string, skills: readonly FirmwareSkill[]) {
+export function createAssetsPlugin(
+  id: string,
+  skills: readonly FirmwareSkill[],
+  persona?: string,
+) {
   return {
     name: id,
-    /** 不声明 `inject`：Skill 注册走非严格探测，服务缺失时降级为 warn。 */
+    /** 不声明 `inject`：Skill / persona 注册走非严格探测，服务缺失时降级为 warn。 */
     inject: [] as string[],
     apply(ctx: Context): void {
       const logger = createDomainLogger(readService(ctx, 'logger'), id)
+
+      if (persona !== undefined) {
+        ctx.effect(() => {
+          const prompt = readSystemPrompt(ctx)
+          if (prompt === undefined) {
+            logger.warn('preset scope 缺少 systemPrompt 服务，persona 降级为不注入（Skill 注册不受影响）')
+            return () => {}
+          }
+          return prompt.section({
+            name: 'deployment:persona-prefix',
+            order: prompt.getSectionOrder('DEPLOYMENT_PERSONA_PREFIX'),
+            text: persona,
+          })
+        }, `${id}:persona`)
+      }
 
       ctx.effect(() => {
         const unregisters = registerDomainFirmwareSkills(ctx, skills, logger, {
@@ -92,4 +113,23 @@ export function createAssetsPlugin(id: string, skills: readonly FirmwareSkill[])
       }, `${id}:register-skills`)
     },
   }
+}
+
+/** `ctx.systemPrompt` 的最小结构（非严格读取，缺失时降级）。 */
+interface SystemPromptLike {
+  section(section: { name: string; order: number; text: string }): () => void
+  getSectionOrder(name: string): number
+}
+
+function readSystemPrompt(ctx: Context): SystemPromptLike | undefined {
+  const value = readService(ctx, 'systemPrompt')
+  if (
+    value !== null
+    && typeof value === 'object'
+    && typeof (value as SystemPromptLike).section === 'function'
+    && typeof (value as SystemPromptLike).getSectionOrder === 'function'
+  ) {
+    return value as SystemPromptLike
+  }
+  return undefined
 }

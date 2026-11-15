@@ -153,13 +153,16 @@ make compat DSH_VERSION=0.2.2-rc.2   # 等价写法
 
 ## 运行时装配
 
-1. `cordis.patch.yml` 插入 `dev-domain`（宿主层）、`agent-preset-registry`（`default: dev-leader`）与 3 个 preset；
+1. `cordis.patch.yml` 插入 `dev-domain`（宿主层，只负责 dev 会话的权限预设切换）、
+   `agent-preset-registry`（`default: dev-leader`）与 3 个 preset；
 2. **每个 preset 首项挂自己的资产插件**：`dsh-agent-dev/assets/leader`（6 个 Skill）、`/assets/developer`（7 个）、`/assets/tester`（4 个）；
    注册发生在该 preset 的 scope 层，三个角色的技能面互不串味；共享技能（如 `dev-environment`）在多个 preset 里各自注册一份；
-3. `dev-domain` 监听 `agent/created`，只给 **depth 0 且 preset 为 `dev-leader`** 的根 agent 注入 `LEADER_PERSONA`；
-   Developer/Tester 的人设由各自 preset 内的 `@deepseek-ai/dsh-persona` 提供。
+3. `dev-domain` 监听 `agent/created`，只做一件事：把 dev 会话的权限预设切到 `danger-full-access`
+   （preset 属于本包时才执行）。Leader persona 由 `dev-assets-leader` 在 preset scope 注册，
+   Developer/Tester 的人设由各自 preset 内的 `@deepseek-ai/dsh-persona` 提供——
+   三个人设都随 preset 组合启停，切换 preset 不会再留在旧人设上。
 
-`dev-domain` 的 `inject` 只声明 `['agents']`（Skill 注册已移到 preset 层）；`systemPrompt` 是 per-agent 服务，缺失时只 warn 降级。
+`dev-domain` 的 `inject` 只声明 `['agents']`（权限服务按非严格探测读取，缺失时只 warn 降级）。
 
 两条独立路径，不要混：
 
@@ -249,7 +252,7 @@ dsh plugin --profile <p> add dsh-rsi-agent@0.1.x   # 回滚必需：旧 patch �
 ├─ package.json                  # engines.dsh 声明兼容范围；dsh.bundle.patch 指向 cordis.patch.yml
 ├─ src/
 │  ├─ index.ts                   # 包入口：re-export 插件三要素与领域数据
-│  ├─ plugin.ts                  # 宿主层插件：inject ['agents']；depth 0 且 preset=dev-leader 时注入 persona
+│  ├─ plugin.ts                  # 宿主层插件：只做 dev 会话权限预设切换（persona 在 preset 层）
 │  ├─ assets.ts                  # 资产共享实现：按名字取 Skill 的工厂 + 三份技能清单
 │  ├─ assets-leader.ts           # preset 层插件：Leader 的 6 个 Skill
 │  ├─ assets-developer.ts        # preset 层插件：Developer 的 7 个 Skill

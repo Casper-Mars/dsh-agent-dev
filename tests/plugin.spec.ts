@@ -333,98 +333,53 @@ describe('领域 Skill 注册（按 preset 分发）', () => {
 })
 
 /* ------------------------------------------------------------------ *
- * 2. Leader persona 生命周期
+ * 2. Leader persona（dev-assets-leader，preset 层）
  * ------------------------------------------------------------------ */
 
-describe('Leader persona 注入', () => {
-  it('depth 0 根 agent → 注入 Leader persona（槽位与正文正确）', async () => {
-    const { context } = createHostContext()
-    apply(context)
+describe('Leader persona（dev-assets-leader，preset 层）', () => {
+  it('注册 deployment:persona-prefix 槽位，正文与 LEADER_PERSONA 一致', () => {
+    const prompt = createSystemPrompt()
+    const context = new FakeContext({
+      skills: createSkillRegistry(),
+      systemPrompt: prompt,
+      logger: { warn: () => {} },
+    })
+    applyLeaderAssets(context)
 
-    const agent = makeAgent('root', 0)
-    await context.emit('agent/created', { agent, source: 'test' })
-
-    expect(agent.ctx.injectCalls).toEqual([['systemPrompt']])
-    const sections = (agent.ctx.get('systemPrompt') as ReturnType<typeof createSystemPrompt>).sections
-    expect(sections).toHaveLength(1)
-    expect(sections[0]).toMatchObject({
+    expect(prompt.sections).toHaveLength(1)
+    expect(prompt.sections[0]).toMatchObject({
       name: 'deployment:persona-prefix',
       order: 100,
       text: LEADER_PERSONA,
     })
   })
 
-  it('preset 不是本角色 → 不注入 Leader persona（不压到 cto/pm 会话）', async () => {
-    const { context } = createHostContext()
-    apply(context)
-
-    const agent = makeAgent('cto-root', 0, true, 'cto')
-    await context.emit('agent/created', { agent, source: 'test' })
-
-    expect(agent.ctx.injectCalls).toEqual([])
-  })
-
-  it('preset 是 dev-leader → 注入', async () => {
-    const { context } = createHostContext()
-    apply(context)
-
-    const agent = makeAgent('leader-root', 0, true, ROLE)
-    await context.emit('agent/created', { agent, source: 'test' })
-
-    expect(agent.ctx.injectCalls).toEqual([['systemPrompt']])
-  })
-
-  it('depth 1 子 agent → 不注入，不调用 inject', async () => {
-    const { context } = createHostContext()
-    apply(context)
-
-    const agent = makeAgent('child', 1)
-    await context.emit('agent/created', { agent, source: 'subagent' })
-
-    expect(agent.ctx.injectCalls).toEqual([])
-    expect((agent.ctx.get('systemPrompt') as ReturnType<typeof createSystemPrompt>).sections).toEqual([])
-  })
-
-  it('同一 agent 重复 agent/created → 幂等，只注入一次', async () => {
-    const { context } = createHostContext()
-    apply(context)
-
-    const agent = makeAgent('root', 0)
-    await context.emit('agent/created', { agent, source: 'test' })
-    await context.emit('agent/created', { agent, source: 'test' })
-    await context.emit('agent/created', { agent, source: 'test' })
-
-    expect(agent.ctx.injectCalls).toHaveLength(1)
-    expect((agent.ctx.get('systemPrompt') as ReturnType<typeof createSystemPrompt>).sections).toHaveLength(1)
-  })
-
-  it('agent/disposed → 记录的 fiber 被 dispose，section 被释放', async () => {
-    const { context } = createHostContext()
-    apply(context)
-
-    const agent = makeAgent('root', 0)
-    await context.emit('agent/created', { agent, source: 'test' })
-    const prompt = agent.ctx.get('systemPrompt') as ReturnType<typeof createSystemPrompt>
-    expect(prompt.sections[0].disposed).toBe(false)
-
-    await context.emit('agent/disposed', { agent })
-    await flush()
-
-    expect(agent.ctx.injectFibers[0].disposed).toBe(true)
-    expect(prompt.sections[0].disposed).toBe(true)
-  })
-
-  it('systemPrompt 缺失 → 只 warn，资产 Skill 仍注册成功', async () => {
-    const { context, registry, warns } = createHostContext()
-    apply(context)
+  it('systemPrompt 缺失 → 只 warn，Leader 资产 Skill 仍全部注册', () => {
+    const warns: string[] = []
+    const registry = createSkillRegistry()
+    const context = new FakeContext({
+      skills: registry,
+      logger: { warn: (message: string) => warns.push(message) },
+    })
     applyLeaderAssets(context)
 
-    const agent = makeAgent('root', 0, false)
-    await expect(context.emit('agent/created', { agent, source: 'test' })).resolves.toBeUndefined()
+    expect(registry.registered).toHaveLength(LEADER_SKILLS.length)
+    expect(warns.some((line) => line.includes('persona'))).toBe(true)
+  })
 
-    expect(agent.ctx.injectCalls).toEqual([])
-    expect(warns.some((line) => line.includes('systemPrompt'))).toBe(true)
-    expect(registry.definitions.size).toBe(LEADER_SKILLS.length)
+  it('scope 卸载 → persona section 被释放（切换 preset 时旧人设随之消失）', async () => {
+    const prompt = createSystemPrompt()
+    const context = new FakeContext({
+      skills: createSkillRegistry(),
+      systemPrompt: prompt,
+      logger: { warn: () => {} },
+    })
+    applyLeaderAssets(context)
+
+    const effect = context.effects.find((item) => item.label === 'dev-assets-leader:persona')
+    expect(effect).toBeDefined()
+    await (effect as { fiber: FakeFiber }).fiber.dispose()
+    expect(prompt.sections[0]?.disposed).toBe(true)
   })
 })
 
@@ -508,22 +463,17 @@ describe('插件卸载', () => {
     expect(registry.definitions.size).toBe(0)
   })
 
-  it('卸载生命周期 effect → 解绑事件并释放残留 persona fiber', async () => {
+  it('卸载权限 effect → 解绑 agent/created 监听', async () => {
     const { context } = createHostContext()
     apply(context)
-
-    const agent = makeAgent('root', 0)
-    await context.emit('agent/created', { agent, source: 'test' })
     expect(context.listenerCount('agent/created')).toBe(1)
 
     const lifecycle = context.effects.find(
-      (item) => item.label === 'dev-domain:leader-persona-lifecycle',
+      (item) => item.label === 'dev-domain:permission-preset',
     )
     await (lifecycle as { fiber: FakeFiber }).fiber.dispose()
 
     expect(context.listenerCount('agent/created')).toBe(0)
-    expect(context.listenerCount('agent/disposed')).toBe(0)
-    expect(agent.ctx.injectFibers[0].disposed).toBe(true)
   })
 
   it('卸载后再装配 → Skill 可重新注册（占位已释放）', async () => {
@@ -545,22 +495,16 @@ describe('插件卸载', () => {
  * ------------------------------------------------------------------ */
 
 describe('注册只读', () => {
-  it('装配 + 注册 + 注入 + 卸载全程 0 次写盘调用', async () => {
+  it('装配 + 注册 + 权限切换 + 卸载全程 0 次写盘调用', async () => {
     const { context } = createHostContext()
     apply(context)
 
-    const root = makeAgent('root', 0)
-    const child = makeAgent('child', 1)
+    const root = makeAgent('root', 0, true, 'dev-leader')
+    root.ctx.setService('permissionPresets', makePermissionService().service)
     await context.emit('agent/created', { agent: root, source: 'test' })
-    await context.emit('agent/created', { agent: child, source: 'subagent' })
-    await context.emit('agent/disposed', { agent: root })
     await flush()
 
-    const lifecycle = context.effects.find(
-      (item) => item.label === 'dev-domain:leader-persona-lifecycle',
-    )
-    await (lifecycle as { fiber: FakeFiber }).fiber.dispose()
-    await context.effects[0].fiber.dispose()
+    for (const item of [...context.effects].reverse()) await item.fiber.dispose()
 
     const writeApis = [
       'writeFileSync',
