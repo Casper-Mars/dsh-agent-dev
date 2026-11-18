@@ -480,6 +480,9 @@ class LeaderPermissionSwitcher {
    * 失败只 warn：权限服务缺失或尚未就绪时，降级为进程默认，由人设红线兜底。
    */
   private applyRolePermission(agent: AgentLike): void {
+    // 子 agent 不继承 dev 的全权限：主智能体以 workspace-write 运行，
+    // 它派出的 dev 子 agent 也必须留在同一权限档，否则等于隐式提权。
+    if ((agent.options?.subagentDepth ?? 0) > 0) return
     const presetId = composedPresetOf(agent)
     if (presetId === undefined || !DEV_PRESETS.has(presetId)) return
     if (agent.session === undefined) return
