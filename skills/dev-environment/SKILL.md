@@ -456,3 +456,10 @@ docker ps -a --filter "label=devcontainer.local_folder=${WF}" --format '{{.Names
 - [ ] 顺序为 回收容器与卷 → `worktree remove` → `worktree prune` → 删分支
 - [ ] `docker ps -a --filter label=dsh.repo=<repo>` 为空（或仅剩显式保留项）
 - [ ] 项目结束后清理镜像与缓存卷（`docker volume rm dsh-<repo>-*`）
+
+## 浏览器测试（browserless）
+
+- 平台 UI 在容器网络里的地址是 `http://echuan:8720`；从浏览器容器访问不要用宿主 `127.0.0.1:8721`。
+- 浏览器跑在 `browserless` 容器里：`127.0.0.1` 指浏览器自己；`host.docker.internal` 可能被宿主代理拦截。CDP 连接必须带 `--no-proxy-server`。
+- 不要为了跑测试自行安装 Chrome。`browser` 工具连不上或页面报 `ERR_HTTP_RESPONSE_CODE_FAILURE` 时，先停下报告现象与 URL，不要改用本地 Chromium 绕过。
+- 同一 `sanding` 网络内可直接用服务名：`http://echuan:8720`、`http://browserless:3000`。
