@@ -19,8 +19,8 @@
 
 - 读完任务说明全文，把验收标准抄成**编号列表**（AC1、AC2…），不转述、不合并；有歧义、缺失或互相冲突 → 停下来一次问完，不猜。
 - 记录基线：`git status --short` 与 `git log --oneline -3`，确认工作区干净、分支正确。
-- **立项（每个项目只做一次）**：从最新 `origin/main` 建**一条项目分支**与**一个 worktree**（`feat/<项目号>-<描述>`，路径见 `dev-worktree-git` 第一节），把 `PROJECT_BRANCH` / `WORKTREE` / `BASE_SHA` 记进项目卡片。
-  后续任务全部在同一分支上提交，**不再逐任务建分支、也不再逐任务合并 main**；全部任务通过后只开一个 PR 合入 main。
+- **立项（每个项目只做一次）**：从最新 `origin/main` 建**一条项目集成分支** `feature/<项目号>`（不建项目级 worktree，见 `dev-worktree-git` 第一节），把 `PROJECT_BRANCH` / `BASE_SHA` 记进项目卡片。
+  每张 dev 卡从项目分支最新远程提交切 `task/<任务号>` 的独立 worktree，交付时建任务 PR（base = 项目分支）；全部任务通过且任务 PR 已合入项目分支后，只开一个收尾 PR 合入 main。
 - **项目落位（硬规则）**：先跑 `pwd -P` 取真实 workspace（不是 `pwd`，也不是 `DSH_HOME`），项目一律落在 `<workspace>/projects/<repo>`。
   - 新建：`mkdir -p <workspace>/projects/<repo>` 后 `git init`；克隆：`git clone <url> "<workspace>/projects/<repo>"`。
   - 卡片给的是外部路径（不在 `<workspace>` 内）：改写成 `<workspace>/projects/<repo>` 并在卡片里说明；用户坚持原路径则停下确认，不擅自在外部落位。
@@ -44,7 +44,7 @@
 
 - 读代码、`rg` 检索、读 `package.json` / `Makefile` / `go.mod`、读日志；
 - 写交付说明、维护 Wiki 与任务清单、拆分任务、决定派发顺序、向用户汇报与提问；
-- 创建项目分支与 worktree（立项时一次）、`git add` / `git commit` / `git push`、`gh pr create`；只读核查 `git status` / `git diff` / `git log` / `ls` / `wc -l`。
+- 创建项目集成分支（立项一次）、创建/回收任务 worktree（每卡）、`git add` / `git commit` / `git push`、`gh pr create`；只读核查 `git status` / `git diff` / `git log` / `ls` / `wc -l`。
   合并 PR（`gh pr merge`）需要用户或 CTO 明确确认后才能执行。
 - 管理与核销开发环境（`docker` / `devcontainer` 的生命周期操作、`worktree` 与容器回收顺序）；
 
@@ -65,7 +65,7 @@
 ## 阶段 5 · 交付，然后停下
 
 1. 交付回复固定含：项目分支 + 任务 commit、命令与退出码、逐条 AC 结果、未覆盖项 / 风险。
-2. **项目收口（全部任务 PASS 后执行一次）**：`git merge origin/main` → `git push -u origin <PROJECT_BRANCH>` → `gh pr create --base main`，PR 正文含任务表、验证结果、未覆盖项、回滚方式；合并需用户或 CTO 确认，不自行 merge。
+2. **项目收口（全部任务 PASS 且任务 PR 已合入项目分支后执行一次）**：`git merge origin/main` → `git push -u origin <PROJECT_BRANCH>` → `gh pr create --base main`，PR 正文含任务表、验证结果、未覆盖项、回滚方式；合并需用户或 CTO 确认，不自行 merge。
 3. 跟踪任务进度：优先用可用工具；确实没有工具时，才写 <workspace>/task-status.md（workspace 根，不放项目仓内）。
 4. 最后一句固定写「已停下，等你确认后我再推进下一个任务」。
 5. 只有用户明确回「继续 / 下一个 / 推进 / go」才算确认；「好的」「收到」「看起来不错」不算，需要再问一句「是否推进下一个？」。
@@ -75,7 +75,7 @@
 
 - 交付前按 `dev-environment` 的核销步骤做双路检查（`label dsh.repo=<repo>` 清单 + 按镜像兜底反查挂载源），孤儿清单或「显式保留 + 理由」必须出现在交付说明里。
 - 归属不明的容器一律不删，写进交付说明交人判断（同机常有别人的容器）。
-- 收尾顺序固定：回收容器与卷 → `git worktree remove` → `worktree prune` → 删项目分支（PR 已合并后）。顺序颠倒会失去容器归属锚点。
+- 收尾顺序固定：回收容器与卷 → 逐个 `git worktree remove` → `worktree prune` → 删任务分支（任务 PR 已合并后）→ 删项目分支（收尾 PR 已合并后）。顺序颠倒会失去容器归属锚点。
 - 子 agent 自建的私有环境由自建者登记与回收；agent 被中断时，Leader 的核销是唯一兜底。
 - 项目最后一张卡且合并 PR 已合并后，才清理镜像与缓存卷（中途保留以复用）。
 
