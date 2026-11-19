@@ -1,6 +1,6 @@
 ---
 name: dev-dispatch-contract
-description: Leader 派发契约：10 字段上下文卡片、preset 选择表、Developer/Tester 边界、派发即结束本轮与失败回报格式。
+description: Leader 派发契约：12 字段上下文卡片、preset 选择表、Developer/Tester 边界、派发即结束本轮与失败回报格式。
 whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报需要核对格式时使用。
 ---
 
@@ -30,7 +30,7 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
 - `maxDepth: 1`：子 agent 无法再向下派发。需要多人协作时，由 Leader 串行拆成多次派发，禁止让子 agent「自己找人」。
 - 一次派发只装一个可独立验收的任务；两个不相关任务塞一张卡片 = 返工。
 
-### 2. 填 10 字段卡片（直接复制改写）
+### 2. 填 12 字段卡片（直接复制改写）
 
 ```markdown
 📋 任务上下文
@@ -62,6 +62,10 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
     无审批通道、网络/凭据限制、必须降级的命令；环境由 Leader 在阶段 1.5 备好，卡片必须写
     容器名 / `WF` / 执行命令形态；子 agent 不得自行 `docker run` / `devcontainer up`，
     自建私有环境须在报告里登记 `name=… id=… 已回收|待回收`
+11. UI 设计引用（UI 任务必填）：`design_ref=<commit sha>`；非 UI 任务写「无」。
+    必须能对应到 `design/screens/*.md` 与 `design/refs/` 下的截图。
+12. 必须覆盖的状态（UI 任务必填）：按屏列出，如 `<screen>: default / empty / loading / error`；
+    列表页加 `long-list`；非 UI 任务写「无」。
 ```
 
 字段硬要求：
@@ -73,6 +77,7 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
   `STACK=… REF=… DETECT=…`」。
 - 第 8 项写「无」「无 Skill」或留空 = **卡片不合格，禁止派发**（角色规范只有在被加载后才生效，
   不写进卡片就等于没有约束）。
+- UI 任务缺第 11 / 12 项（`design_ref`、状态清单）= 卡片不合格，禁止派发；验收按 `dev-ui-review` 执行。
 - 第 10 项必须显式写 `delivery_mode`；`workspace` 时还要写清「Tester 如何取得交付物」（复制路径/忽略目录）。
 - 路径写绝对路径；相对路径在子 agent 的 cwd 里可能解析不到。
 - 第 5 项必须区分「项目级」与「任务级」：分支与 worktree 是项目立项时建的，本卡只引用；
@@ -94,7 +99,7 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
 ```text
 subagent({
   description: "任务-03 Skill 内容补全",   // 3~5 个词，用于列表展示
-  prompt: "<上面 10 字段卡片全文>",
+  prompt: "<上面 12 字段卡片全文>",
   agent_preset: "dev-developer",
   cwd: "/abs/path/to/worktree"
 })

@@ -30,6 +30,7 @@ export const EXPECTED_SKILLS = [
   'dev-release',
   'dev-observability',
   'dev-retro',
+  'dev-ui-review',
 ]
 
 /** `dev-test-strategy/references/` 下期望的 5 个栈文档（文件名去掉 `.md`）。 */

@@ -46,6 +46,7 @@ export const TESTER_SKILLS = [
   'dev-quality-gate',
   'dev-role-tester',
   'dev-test-strategy',
+  'dev-ui-review',
 ] as const
 
 /** 按名字取领域 Skill；名字写错时直接抛错（构建期/测试期暴露，不静默丢技能）。 */

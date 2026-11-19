@@ -32,6 +32,7 @@ export const EXPECTED_SKILLS = [
   'dev-release',
   'dev-observability',
   'dev-retro',
+  'dev-ui-review',
 ]
 
 /** 期望注册的 3 个 agent preset。 */

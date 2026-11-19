@@ -53,7 +53,7 @@ export const DEV_DOMAIN: DevDomain = {
   personaMarkdown: LEADER_PERSONA,
   skills: [
     skill('dev-environment', 'Agent 侧开发环境管理规程：把「环境定义」存放在工作区的 <workspace>/.agent-env/（既不是项目仓、也不是 $DSH_HOME），开工前先查后建、一 repo 一容器、交付前按账本与 label 双路核销、收尾按固定顺序回收。本技能只教判断与动作（在哪里放、先查什么、怎么复用、怎么核销），不依赖任何随 skill 分发的脚本；技术栈识别与配置编写由 agent 自己完成。'),
-    skill('dev-dispatch-contract', 'Leader 派发契约：10 字段上下文卡片、preset 选择表、Developer/Tester 边界、派发即结束本轮与失败回报格式。'),
+    skill('dev-dispatch-contract', 'Leader 派发契约：12 字段上下文卡片、preset 选择表、Developer/Tester 边界、派发即结束本轮与失败回报格式。'),
     skill('dev-quality-gate', '交付质量门：triage 与独立验收的分工、按仓库脚本跑三件套、Tester 独立重跑、报告模板与 blocker/major/minor 判定。'),
     skill('dev-worktree-git', '两级分支规范：项目集成分支 feature/<project_id> 收口，每张 dev 卡一条 task/<任务号> 分支与独立 worktree；任务 PR 合入项目分支，收尾一个 PR 合入默认分支。'),
     skill('dev-test-strategy', '测试策略只做栈检测与路由：按清单文件判断技术栈，指向对应 references/<stack>.md，并给出通用测试原则与未识别栈兜底。'),
@@ -64,6 +64,7 @@ export const DEV_DOMAIN: DevDomain = {
     skill('dev-systematic-debugging', '系统化排查缺陷：稳定复现、缩小范围、定位根因、修复并补回归测试。只要用户提到调试、排查 bug、定位问题、复现失败，就使用本技能。不用于需求变更、代码评审或性能优化。'),
     skill('dev-release', '准备与执行代码发布：版本号、构建产物、变更记录、灰度与回滚、依赖与安全补丁。只要用户提到发版、发布、上线、版本号、changelog、回滚，就使用本技能。不用于产品发布说明与市场沟通。'),
     skill('dev-observability', '为代码加日志、指标、追踪与告警，让问题能被发现和定位。只要用户提到日志、监控、指标、告警、追踪、可观测性，就使用本技能。不用于业务指标定义与产品分析。'),
+    skill('dev-ui-review', '按固定清单核对 UI 实现与设计契约的一致性：token 使用、状态矩阵、对比度、可访问性与响应式；输出 file:line 偏差清单与 blocker/major/minor 分级。'),
     skill('dev-retro', '任务复盘规范：触发条件、失败模式分类、单变量改进提案格式（现象/证据/预期指标/回滚），禁止把一次性偏好当规则。'),
   ],
 }
