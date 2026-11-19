@@ -81,7 +81,15 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
   禁止直接落在 workspace 根、`<workspace>/projects` 根、`$HOME`、`~/project`、`~/agents`。
   卡片给的外部路径要改写成 `projects/` 下并说明；用户坚持原路径才停下确认。既有本地仓库原地使用，不迁移、不复制。
 
-### 3. 调用方式
+### 3. 调用方式：先复用，再新建
+
+派发前先 `list_agents`（`scope: children`）看有没有同角色的子 agent：
+
+- **已有同角色 child**（`dev-developer` / `dev-tester`）→ 用
+  `send_message(agent_id, message=<新卡片全文>)` 继续，不新建。child 结束 ≠ 不可用，同一通道能唤醒。
+- **没有** → 才 `subagent({...})` 新建，并把 `subagentId` 记进项目笔记。
+- **同角色只保留一个 child**：按任务串行复用；不要每张卡新建一个，也不要并行起两个同角色 child。
+- 复用不等于省掉交接：消息里仍要带完整卡片（子 agent 只看得到自己的上下文，拿不到你的历史）。
 
 ```text
 subagent({
@@ -117,6 +125,8 @@ subagent({
 - 禁止不传 `cwd` 让子 agent 继承 Leader 目录后在主工作区改动。
 - 禁止把多个不相关任务塞进同一次派发。
 - 禁止派发后 `sleep` / 轮询 / 反复查状态；也禁止中途改同一批文件。
+- 禁止每张卡新建一个同角色 child：先 `list_agents`，能复用就 `send_message`；同角色只保留一个。
+- 禁止并行起两个同角色 child（同一时间同一角色只跑一个任务）。
 - 禁止让子 agent 自行决定验收标准、自行放宽断言、自行 push。
 - 禁止在子 agent 回报「完成」后不做 triage 就转交 Tester 或直接交付。
 - 禁止卡片第 8 项写「无 Skill」/留空；编码与测试类任务必须写角色 Skill 清单 + 路由声明要求。

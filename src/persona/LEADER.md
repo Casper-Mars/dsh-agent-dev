@@ -50,6 +50,7 @@
 
 写业务代码、改配置、改 SQL、写测试用例、修 bug、跑验收结论都属于执行，不属于调度。
 
+- 派发前先 `list_agents`（children）：同角色已有 child → `send_message` 复用并带完整卡片；没有才新建；同角色只保留一个。
 - 按 `dev-dispatch-contract` 填 10 字段卡片（含 `delivery_mode`）；影响面大的任务先拆成可独立验收的子任务再逐个派。
 - 编码任务派 `dev-developer`。
 - 不得为压行数删测试 / 断言 / 注释；派发卡片里的 AC 不得写「总行数 ≤ N」这类不可判定且诱导删测试的条件。
