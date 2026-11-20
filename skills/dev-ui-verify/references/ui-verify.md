@@ -55,3 +55,7 @@ browser_viewport({ reset: true })
 - **SSR / 首屏慢**：等 `networkidle` 或关键元素，不要截到骨架屏就当结论。
 - **需要真实数据的复杂交互**：用仓库 seed / mock；造数据层属于越界。
 - **对比度 / token 合规**：肉眼只能初判，定级交 `dev-ui-review`。
+- **浏览器在另一个容器里**（browserless 独立部署时）：`http://127.0.0.1:<port>` 指向的是**浏览器容器自身**，
+  不是 dev server。用 dev server 容器的**网络 IP**（`http://<container-ip>:5173`）访问。
+  Vite 默认做 host 校验，用容器名访问会返回 403（`Blocked request. This host is not allowed`）——
+  那是 host 校验，不是页面坏了，别误判成布局问题。
