@@ -65,7 +65,7 @@ export const DEV_DOMAIN: DevDomain = {
     skill('dev-release', '准备与执行代码发布：版本号、构建产物、变更记录、灰度与回滚、依赖与安全补丁。只要用户提到发版、发布、上线、版本号、changelog、回滚，就使用本技能。不用于产品发布说明与市场沟通。'),
     skill('dev-observability', '为代码加日志、指标、追踪与告警，让问题能被发现和定位。只要用户提到日志、监控、指标、告警、追踪、可观测性，就使用本技能。不用于业务指标定义与产品分析。'),
     skill('dev-ui-verify', 'UI 黑盒验证流程（L0/L1）：起 dev server、切三档视口、截图、看图判断，判定是否升级 L2；不带脚本、不产生仓库内的验证装置。'),
-    skill('dev-ui-review', '按固定清单核对 UI 实现与设计契约的一致性：token 使用、状态矩阵、对比度、可访问性与响应式；输出 file:line 偏差清单与 blocker/major/minor 分级。'),
+    skill('dev-ui-review', '按风险抽样核对 UI 实现与设计契约：默认抽 3 点（主路径/极端态/移动断点），token、状态、对比度、可访问性；输出 file:line 偏差与 blocker/major/minor 分级。'),
     skill('dev-retro', '任务复盘规范：触发条件、失败模式分类、单变量改进提案格式（现象/证据/预期指标/回滚），禁止把一次性偏好当规则。'),
   ],
 }
