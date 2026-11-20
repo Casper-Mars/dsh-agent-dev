@@ -39,6 +39,9 @@ const EXPECTED_SKILL_NAMES = [
 /** 期望的 5 个栈文档。 */
 const EXPECTED_REFERENCE_STACKS = ['go', 'harmony-arkts', 'node-ts', 'python', 'react']
 
+/** references/ 里允许存在的非栈指南（跨栈通用做法，不参与栈路由）。 */
+const NON_STACK_REFERENCES = ['react-ui']
+
 /** 上游 core 的保留 Skill 名：领域 Skill 不得占用。 */
 const CORE_RESERVED_SKILLS = ['rsi-evolution', 'skill-authorship', 'task-authorship']
 
@@ -117,16 +120,18 @@ describe.each(EXPECTED_SKILL_NAMES)('Skill %s', (name) => {
 })
 
 describe('dev-test-strategy references', () => {
-  it('references/ 恰好 5 个 .md，且与声明清单精确相等', () => {
+  it('references/ = 5 个栈文档 + 白名单内的非栈指南，无其它文件', () => {
     const entries = readdirSync(REFERENCES_ROOT, { withFileTypes: true })
     expect(entries.every((entry) => entry.isFile())).toBe(true)
 
     const files = entries.map((entry) => entry.name).sort()
-    expect(files).toHaveLength(5)
-    expect(files.every((file) => file.endsWith('.md'))).toBe(true)
-    expect(files).toEqual(EXPECTED_REFERENCE_STACKS.map((stack) => `${stack}.md`).sort())
+    const expected = [...EXPECTED_REFERENCE_STACKS, ...NON_STACK_REFERENCES]
+      .map((name) => `${name}.md`)
+      .sort()
+    expect(files).toEqual(expected)
 
     for (const file of files) {
+      expect(file.endsWith('.md')).toBe(true)
       expect(statSync(path.join(REFERENCES_ROOT, file)).size).toBeGreaterThan(0)
     }
   })

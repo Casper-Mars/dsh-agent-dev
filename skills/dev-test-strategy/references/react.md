@@ -57,6 +57,13 @@ pnpm exec eslint . --max-warnings=0
 
 ## 5. 测试
 
+**先定档**：UI 重构 / 新页面 / 视觉调整默认走 **L0–L1（黑盒）**——起服务 → 切视口 → 截图 → 看图，
+做法见 `references/react-ui.md`。下面的组件测试与 e2e 属于 **L2**，只在需要回归保护或覆盖逻辑分支时写。
+
+**UI 重构卡默认不写组件测试**——组件测试回答不了"这屏对不对"，不要用它替代看一眼。
+
+### L2 · 单元 / 组件（Vitest + Testing Library）
+
 **单元 / 组件（Vitest + Testing Library）**
 
 ```bash
@@ -66,7 +73,7 @@ pnpm exec vitest run -t "点击后调用 onSubmit"
 pnpm exec vitest run --coverage
 ```
 
-**e2e（Playwright）**
+### L2 · e2e（Playwright）
 
 ```bash
 pnpm exec playwright test
@@ -78,7 +85,7 @@ pnpm exec playwright show-report            # 看 HTML 报告
 
 e2e 前置：先起应用（`pnpm dev` 或 `pnpm preview`），或用 Playwright 的 `webServer` 配置自动拉起。
 
-**Cypress 项目**：`pnpm exec cypress run`（无头）/ `pnpm exec cypress open`（本地）。
+**L2 · Cypress 项目**：`pnpm exec cypress run`（无头）/ `pnpm exec cypress open`（本地）。
 
 ## 6. 最小样例
 
