@@ -18,7 +18,7 @@ const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
 const SKILLS_ROOT = path.join(REPO_ROOT, 'skills')
 const REFERENCES_ROOT = path.join(SKILLS_ROOT, 'dev-test-strategy', 'references')
 
-/** 期望的 14 个 Skill（顺序与 `DEV_DOMAIN.skills` 的稳定声明顺序一致）。 */
+/** 期望的 15 个 Skill（顺序与 `DEV_DOMAIN.skills` 的稳定声明顺序一致）。 */
 const EXPECTED_SKILL_NAMES = [
   'dev-environment',
   'dev-dispatch-contract',
@@ -32,6 +32,7 @@ const EXPECTED_SKILL_NAMES = [
   'dev-systematic-debugging',
   'dev-release',
   'dev-observability',
+  'dev-ui-verify',
   'dev-ui-review',
   'dev-retro',
 ]
@@ -64,7 +65,7 @@ describe('DEV_DOMAIN 声明', () => {
     expect(DEV_DOMAIN.id).toBe('dev')
     expect(DEV_DOMAIN.version).toMatch(/^\d+\.\d+\.\d+$/)
     expect(DEV_DOMAIN.displayName.length).toBeGreaterThan(0)
-    expect(DEV_DOMAIN.skills).toHaveLength(14)
+    expect(DEV_DOMAIN.skills).toHaveLength(15)
 
     const names = DEV_DOMAIN.skills.map((skill) => skill.name)
     expect(new Set(names).size).toBe(names.length)

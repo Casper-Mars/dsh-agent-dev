@@ -132,8 +132,8 @@ describe('parseFirmwareSkillMarkdown', () => {
  * ------------------------------------------------------------------ */
 
 describe('buildFirmwareSkillRegistration', () => {
-  it('14 个领域 Skill 的注册参数全部合规', () => {
-    expect(DEV_DOMAIN.skills).toHaveLength(14)
+  it('15 个领域 Skill 的注册参数全部合规', () => {
+    expect(DEV_DOMAIN.skills).toHaveLength(15)
 
     for (const skill of DEV_DOMAIN.skills) {
       const registration = buildFirmwareSkillRegistration(skill)
@@ -194,7 +194,7 @@ describe('planFirmwareSkillRegistrations', () => {
     expect(plan.skipped).toEqual([{ name: 'b-skill', reason: 'already-registered' }])
   })
 
-  it('14 个领域 Skill 全部进入计划，无跳过', () => {
+  it('15 个领域 Skill 全部进入计划，无跳过', () => {
     const plan = planFirmwareSkillRegistrations(DEV_DOMAIN.skills)
     expect(plan.registrations.map((item) => item.name)).toEqual(SKILL_NAMES)
     expect(plan.skipped).toEqual([])
@@ -221,7 +221,7 @@ describe('registerDomainFirmwareSkills', () => {
       logger,
     )
 
-    expect(unregisters).toHaveLength(14)
+    expect(unregisters).toHaveLength(15)
     expect([...registry.live].sort()).toEqual([...SKILL_NAMES].sort())
     expect(warns).toEqual([])
   })
@@ -251,13 +251,13 @@ describe('registerDomainFirmwareSkills', () => {
     const { logger, warns } = recordingLogger()
     const ctx = fakeContext({ skills: registry })
 
-    expect(registerDomainFirmwareSkills(ctx, DEV_DOMAIN.skills, logger)).toHaveLength(14)
+    expect(registerDomainFirmwareSkills(ctx, DEV_DOMAIN.skills, logger)).toHaveLength(15)
     expect(registerDomainFirmwareSkills(ctx, DEV_DOMAIN.skills, logger)).toHaveLength(0)
 
     expect(warns).toHaveLength(1)
-    expect(warns[0]).toContain('跳过 14 个')
+    expect(warns[0]).toContain('跳过 15 个')
     expect(warns[0]).toContain('dev-environment')
-    expect(registry.live.size).toBe(14)
+    expect(registry.live.size).toBe(15)
   })
 
   it('反注册后占位释放 → 可以重新注册（卸载再装路径）', () => {
@@ -269,8 +269,8 @@ describe('registerDomainFirmwareSkills', () => {
     for (const unregister of [...first].reverse()) unregister()
     expect(registry.live.size).toBe(0)
 
-    expect(registerDomainFirmwareSkills(ctx, DEV_DOMAIN.skills, logger)).toHaveLength(14)
-    expect(registry.live.size).toBe(14)
+    expect(registerDomainFirmwareSkills(ctx, DEV_DOMAIN.skills, logger)).toHaveLength(15)
+    expect(registry.live.size).toBe(15)
     expect(warns).toEqual([])
   })
 

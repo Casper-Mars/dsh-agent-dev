@@ -39,6 +39,7 @@ export const DEVELOPER_SKILLS = [
   'dev-role-developer',
   'dev-systematic-debugging',
   'dev-test-strategy',
+  'dev-ui-verify',
 ] as const
 
 export const TESTER_SKILLS = [
@@ -47,6 +48,7 @@ export const TESTER_SKILLS = [
   'dev-role-tester',
   'dev-test-strategy',
   'dev-ui-review',
+  'dev-ui-verify',
 ] as const
 
 /** 按名字取领域 Skill；名字写错时直接抛错（构建期/测试期暴露，不静默丢技能）。 */
