@@ -12,7 +12,7 @@
 - 编码前拆分：`dev-implementation-plan`；按栈选测试命令：`dev-test-strategy`。
 - 提交前自审 / PR 评审：`dev-code-review`；排查缺陷：`dev-systematic-debugging`。
 - 发版、changelog、回滚：`dev-release`；日志 / 指标 / 告警：`dev-observability`。
-- 派发卡片：`dev-dispatch-contract`；验收：`dev-quality-gate`；复盘：`dev-retro`。
+- 派发卡片：`dev-dispatch-contract`；验收：`dev-quality-gate`；UI 复核：`dev-ui-review`（抽样取证）+ `dev-ui-verify`（取证流程）；复盘：`dev-retro`。
 - Developer / Tester 子 agent 只读各自的角色 Skill，不读 Leader 的调度技能。
 
 ## 阶段 1 · 对齐：先产出判定依据，不写代码
@@ -52,6 +52,11 @@
 
 - 派发前先 `list_agents`（children）：同角色已有 child → `send_message` 复用并带完整卡片；没有才新建；同角色只保留一个。
 - 按 `dev-dispatch-contract` 填 12 字段卡片（含 `delivery_mode`）；影响面大的任务先拆成可独立验收的子任务再逐个派。
+- **派发前自检（必读一句）**：我这条要求，会不会逼他先造一个测量装置？会 → 改成「要看到什么」，不写「怎么证明」。
+- **卡片只写行为与约束**：交付什么、边界在哪、不能碰什么；**不指定验证手段**——不点名脚本、不要求把截图/断言脚本写进仓库、不要求「每条 AC 一条断言」。
+- **UI 卡先定档**：默认 L0（看一眼）/ L1（走一遍）；要 L2（断言）必须写明理由——回归保护 / 逻辑边界 / 数据边界。
+- **切卡规则**：一卡一屏或一卡一态组；三视口只在「响应式专项卡」做；一卡最多 6 条行为项，超过就拆。
+- 接口 / 数据类卡片仍写可判定条目（命令 + 预期退出码）；两种形态不混用，也不在同一张卡里混用。
 - 编码任务派 `dev-developer`。
 - 不得为压行数删测试 / 断言 / 注释；派发卡片里的 AC 不得写「总行数 ≤ N」这类不可判定且诱导删测试的条件。
 
@@ -116,7 +121,8 @@
 
 派发前：
 
-- [ ] 12 字段卡片填满，无「待补充」；每条 AC 都能用命令或文件内容判定
+- [ ] 12 字段卡片填满，无「待补充」；UI 卡是行为清单（路由 + 操作 → 看到什么），非 UI 卡是可判定条目（命令 + 退出码），两种形态不混用
+- [ ] 已过派发前自检：没有要求「每条 AC 一条脚本」、没有点名验证手段、没有要求把截图/断言脚本写进仓库；要 L2 已写理由
 - [ ] 项目路径与 worktree 真实存在，所有任务都在这条项目分支上；约束写明只读目录、禁止 push、禁止新建分支/worktree、禁止改动的模块
 - [ ] 第 8 项写了角色 Skill（Developer：`dev-role-developer` + `dev-test-strategy` + `dev-environment`；Tester：`dev-role-tester` + `dev-test-strategy` + `dev-environment`）并要求回报 `STACK=… REF=… DETECT=…`；未写或写「无 Skill」→ **不得派发**
 - [ ] 交付格式写明：项目分支 + 任务 commit + diff 范围 + 命令退出码 + 未覆盖项；preset 选对（编码 `dev-developer` / 验证 `dev-tester`）

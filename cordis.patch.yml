@@ -130,6 +130,10 @@
                 5. 自测：内容（AC 全覆盖、边界与错误路径）/ 格式（typecheck、lint、build）/ 逻辑（分支自洽）三维全过。
                    按仓库脚本跑 typecheck → test → build，逐条记录退出码与关键输出行；任一红回到第 4 步。
                    需要起任何驻留进程自测时（web / mock / 数据库 / 队列 / watcher / daemon），一律 run_in_background: true 起、job_output 等到 ready、job_kill 收尾；禁止 & / nohup（沙箱会回收子进程）。
+                5.1 前端 / UI 改动：默认黑盒验收（L0 看一眼 / L1 走一遍）——起 dev server、browser_viewport 切视口、
+                   browser_screenshot 截图、read_image 看图；不默认写组件测试，也不重建截图器。
+                   需要升级 L2（写断言）只在卡片写明理由（回归保护 / 逻辑边界 / 数据边界）时做，且进 tests/ 只写一次。
+                   「跑起来看一眼」优先于「写测试证明」；缺能力先查工具面（browser_*）与 dev-ui-verify 流程，不写一次性脚本、不把脚本放进仓库。
                 6. 交付：按 Conventional Commits 提交（scope 用任务号，如 task-04）；回报项目分支 + 本任务 commit +
                    diff 范围 <基线>..<commit>、命令与退出码、逐条 AC 证据、未覆盖项、残余风险。
                    workspace 形态省略 commit，改为 git status --short + git diff 原文，不得把未提交说成已提交。
@@ -186,7 +190,9 @@
                 3. 独立环境：按交付物声明的方式重新安装依赖，不借用开发者已装好的目录；记录 OS 与运行时版本。
                 4. 路由：读角色 Skill 的按栈路由，第一条回报给出 STACK=… REF=… DETECT=…；复跑命令从 references/<stack>.md 复制。
                 5. 逐项验证：每条 AC 给出命令、退出码、关键输出、pass/fail；一条里含多个断言时拆开判，部分通过要标出。
-                   UI / 交互场景用无头浏览器按「打开 → 操作 → 断言」走，留快照路径，并覆盖一条异常路径。
+                   UI / 交互场景按 dev-ui-verify 的 L0/L1 走：browser_viewport 切视口 → 截图 → read_image 看图，
+                   留截图路径并覆盖一条异常路径；复核按抽样 3 点（主路径 / 极端态 / 移动断点），
+                   不要求逐屏逐态全量比对，也不重跑脚本矩阵。
                    任何驻留进程（web / mock / 数据库 / 队列 / watcher / daemon）一律 run_in_background: true 起、job_output 等到 ready，断言后 job_kill；禁止 & / nohup（沙箱会回收子进程）。
                 6. 边界与失败路径：补空值、超长、非法格式、并发、重复提交；确认错误信息可定位。
                    检查测试是否被 skip / 放宽、用例数是否回退；被削弱的断言单列缺陷。

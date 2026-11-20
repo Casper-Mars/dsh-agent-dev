@@ -72,6 +72,19 @@ ohpm install
 ./hvigorw assembleHap --mode module -p product=default
 ```
 
+## 前端 / UI 改动的默认做法（L0 / L1）
+
+前端不是「补单测证明」，是「跑起来看一眼」。默认顺序：
+
+1. 起 dev server（后台 job），等到端口就绪；
+2. `browser_viewport` 切视口（desktop 1440×900 / mobile 390×844，响应式专项卡才跑三档）；
+3. `browser_navigate` + `browser_screenshot` 落到 `.shots/`，`read_image` 真的看图；
+4. 偏差记 `file:line` 或截图路径 + 期望值；
+5. 收尾 `browser_viewport({ reset: true })`。
+
+升级 L2（写断言）只在卡片写明理由时做：回归保护 / 逻辑边界 / 数据边界；断言进 `tests/` 只写一次。
+「跑起来看一眼」优先于「写测试证明」——组件测试回答不了「这屏对不对」。
+
 ## 自检维度
 
 | 维度 | 检查项 | 不通过的样子 |
@@ -113,6 +126,8 @@ STACK=… REF=… DETECT=…
 - 禁止提交 `dist/`、`node_modules/`、`.env`、日志；
 - 禁止 `git add .` 盲加；禁止 `push --force`；
 - 禁止把「我跑过了」当成证据，必须贴命令与退出码。
+- 禁止为 UI 验证写一次性脚本（截图器、断言器），也禁止把它们放进仓库；缺能力先查工具面（`browser_*`）与 `dev-ui-verify`。
+- 禁止用组件测试替代开页面看一眼（UI 重构卡默认不写组件测试）。
 
 ## 检查清单
 
@@ -121,5 +136,6 @@ STACK=… REF=… DETECT=…
 - [ ] 沿用项目 worktree 与分支，未新建分支 / worktree；基线 commit 与本任务 diff 范围已记录；
 - [ ] 改动范围与卡片一致，无越界文件；
 - [ ] typecheck / test / build 全绿，退出码与关键输出已记录；
+- [ ] UI 改动已按 L0/L1 取证（三档或抽样视口 + 截图 + 看图），未新增一次性脚本；
 - [ ] commit message 合规，必要时已拆 commit；
 - [ ] 交付含证据、未覆盖项、残余风险，且未 push。
