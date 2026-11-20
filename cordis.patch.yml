@@ -156,6 +156,11 @@
             name: '@deepseek-ai/dsh-tool-todo'
             config:
               allowParallelInProgress: false
+          # 浏览器工具：视口模拟 + 截图取证（cdpUrl 走环境变量 DSH_BROWSER_CDP_URL）
+          - id: browser-dev
+            name: dsh-browser-native
+            config:
+              screenshotDir: .shots
 
     - id: preset-dev-tester
       name: '@deepseek-ai/dsh-agent-preset'
@@ -210,6 +215,11 @@
             name: '@deepseek-ai/dsh-tool-todo'
             config:
               allowParallelInProgress: false
+          # 浏览器工具：复核时自行取证（cdpUrl 走环境变量 DSH_BROWSER_CDP_URL）
+          - id: browser-tester
+            name: dsh-browser-native
+            config:
+              screenshotDir: .shots
 
 # 顶层补丁：基座 bundle 已声明 tool-subagent，这里只覆盖 config（沿用 spike 已验证写法）。
 # 这是子 agent 兜底的第二处（第一处在 preset-dev-leader 内），两处都必须保持
