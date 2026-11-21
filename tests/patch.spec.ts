@@ -101,23 +101,15 @@ describe('主会话 preset（dev-leader）', () => {
 })
 
 describe('主会话工具面扩展', () => {
-  it('dev-leader 挂 schedule + plan-mode 组 + workflow 组', () => {
+  it('dev-leader 不挂 schedule / plan-mode / workflow（schema 是每步固定开销）', () => {
     const config = byId('preset-dev-leader').config as {
-      plugins: Array<{ id: string; name: string; group?: boolean; isolate?: Record<string, unknown> }>
+      plugins: Array<{ id: string }>
     }
     const ids = config.plugins.map((plugin) => plugin.id)
     expect(ids).toContain('tool-jobs')
-    expect(ids).toContain('tool-schedule')
-
-    const planning = config.plugins.find((plugin) => plugin.id === 'planning')
-    expect(planning?.name).toBe('cordis:group')
-    expect(planning?.group).toBe(true)
-    expect(planning?.isolate).toEqual({ planMode: true })
-
-    const workflow = config.plugins.find((plugin) => plugin.id === 'workflow')
-    expect(workflow?.name).toBe('cordis:group')
-    expect(workflow?.group).toBe(true)
-    expect(workflow?.isolate).toEqual({ workflowEngine: true })
+    expect(ids).not.toContain('tool-schedule')
+    expect(ids).not.toContain('planning')
+    expect(ids).not.toContain('workflow')
   })
 
   it('子 agent preset 不挂 schedule / plan-mode / workflow（编排留在 Leader）', () => {
