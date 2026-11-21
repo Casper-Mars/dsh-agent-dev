@@ -35,7 +35,7 @@ whenToUse: 任何需要构建、测试、运行、装依赖、起服务的任务
 $WS/.agent-env/               # $WS = pwd -P 的 workspace 根；不进任何仓库，也不放 $DSH_HOME
 ├── hostmap.json              # 容器内路径 ↔ 宿主机路径（探测一次，长期复用）
 ├── images/                   # 可选：自建 dsh-env:<stack> 的 Dockerfile 与构建说明
-└── <repo>/                   # 按仓库建目录（repo = 仓库目录名，如 echuan）
+└── <repo>/                   # 按仓库建目录（repo = 仓库目录名）
     ├── env.md                # 必需：本项目的环境说明（人/AI 都能读）
     ├── devcontainer/         # 可选：devcontainer 后端用的配置副本（第 6 节），不在项目仓里改
     ├── Dockerfile            # 可选：基础镜像不满足依赖时才写
@@ -145,7 +145,7 @@ devcontainer 后端的容器名随机：4.2 / 4.3 用 ledger 里记的 `containe
 
 ```bash
 WS=$(pwd -P)                 # 当前 workspace 根
-REPO=echuan                  # 仓库目录名
+REPO=<repo>                  # 仓库目录名
 HOST_WS=<宿主机上的 WS 路径>  # split 形态必需，探测见 5.1
 
 docker run -d \
@@ -370,7 +370,7 @@ docker ps -a --filter "label=devcontainer.local_folder=${WF}" --format '{{.Names
 交付说明里必须出现其中之一：
 
 - **孤儿清单为空**（贴命令与空输出）；或
-- **显式保留**：列出容器名 + 理由（例：`dsh-echuan-dev` 保留，下张卡还要用），并在 ledger 记
+- **显式保留**：列出容器名 + 理由（例：`dsh-<repo>-dev` 保留，下张卡还要用），并在 ledger 记
   `retain`。
 
 判定「孤儿」的口径：`dsh.repo=<repo>`（或 `devcontainer.local_folder=<WF>`）存在、但项目已收尾 /
@@ -459,7 +459,7 @@ docker ps -a --filter "label=devcontainer.local_folder=${WF}" --format '{{.Names
 
 ## 浏览器测试（browserless）
 
-- 平台 UI 在容器网络里的地址是 `http://echuan:8720`；从浏览器容器访问不要用宿主 `127.0.0.1:8721`。
+- 被测服务在容器网络里的地址是 `<服务名>:<端口>`；从浏览器容器访问不要用宿主 `127.0.0.1:<端口>`。
 - 浏览器跑在 `browserless` 容器里：`127.0.0.1` 指浏览器自己；`host.docker.internal` 可能被宿主代理拦截。CDP 连接必须带 `--no-proxy-server`。
 - 不要为了跑测试自行安装 Chrome。`browser` 工具连不上或页面报 `ERR_HTTP_RESPONSE_CODE_FAILURE` 时，先停下报告现象与 URL，不要改用本地 Chromium 绕过。
-- 同一 `sanding` 网络内可直接用服务名：`http://echuan:8720`、`http://browserless:3000`。
+- 与本项目同网络的容器之间可直接用服务名互访；浏览器服务固定为 `http://browserless:3000`。
