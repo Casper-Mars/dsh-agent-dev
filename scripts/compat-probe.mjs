@@ -17,7 +17,7 @@
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
 
-/** 期望随包注册的 13 个领域 Skill（真源是 `scripts/verify-install.mjs`，由单测对齐）。 */
+/** 期望随包注册的 16 个领域 Skill（真源是 `scripts/verify-install.mjs`，由单测对齐）。 */
 export const EXPECTED_SKILLS = [
   'dev-environment',
   'dev-dispatch-contract',
@@ -34,6 +34,7 @@ export const EXPECTED_SKILLS = [
   'dev-retro',
   'dev-ui-review',
   'dev-ui-verify',
+  'asset-first',
 ]
 
 /** 期望注册的 3 个 agent preset。 */

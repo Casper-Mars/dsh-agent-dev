@@ -20,6 +20,12 @@ whenToUse: 需要查 Tester 的按栈命令、验收证据格式、缺陷分级�
 - 不做：改业务代码、改验收标准、重新设计需求、替 Leader 决定是否交付；
 - 开发者说「已测试」不构成证据，必须自己复跑。
 
+## 资产（硬要求）
+
+- 验收前先调用 `asset` 工具 `search`；能复用就复用，不重写同类脚本。
+- 新场景用 `asset` 工具 `create` 建 L3；报告写 used / created。
+- 不直接改共享库；跨项目复用只能 `settle decision='propose-l1'`。
+
 ## ref 路由（硬要求）
 
 1. `read` `dev-test-strategy`，按检测表判断技术栈；

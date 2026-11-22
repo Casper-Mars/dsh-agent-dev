@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { buildAssetTool } from '../src/tools/asset'
+import { DEVELOPER_SKILLS, LEADER_SKILLS, TESTER_SKILLS } from '../src/assets'
 
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
 
@@ -20,6 +21,14 @@ describe('asset tool contract', () => {
     const patch = read('cordis.patch.yml')
     expect(patch.match(/id: tool-asset/g)).toHaveLength(3)
     expect(patch.match(/name: dsh-agent-dev\/tools\/asset/g)).toHaveLength(3)
+  })
+
+  it('asset-first is visible in all three presets', () => {
+    expect(LEADER_SKILLS).toContain('asset-first')
+    expect(DEVELOPER_SKILLS).toContain('asset-first')
+    expect(TESTER_SKILLS).toContain('asset-first')
+    const patch = read('cordis.patch.yml')
+    expect(patch.match(/asset 工具 search/g)).toHaveLength(2)
   })
 
   it('exposes the five action protocol', () => {

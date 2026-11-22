@@ -5,7 +5,7 @@
 **装一个包，得到一支会分工、会验收的开发团队。**
 
 [dsh](https://www.npmjs.com/package/@deepseek-ai/dsh)（DeepSeek Harness）的**开发领域原生单包**：<br />
-一次安装，得到 Dev Leader 人设 + 13 个领域 Skill + 3 个 agent preset。
+一次安装，得到 Dev Leader 人设 + 16 个领域 Skill + 3 个 agent preset。
 
 [![dsh compatibility](https://github.com/Casper-Mars/dsh-agent-dev/actions/workflows/dsh-compat.yml/badge.svg)](https://github.com/Casper-Mars/dsh-agent-dev/actions/workflows/dsh-compat.yml)
 [![dsh](https://img.shields.io/badge/dsh-%3E%3D0.2.1--rc.2%20%3C0.3.0-4B6EF5)](./package.json)
@@ -25,7 +25,7 @@
 不写业务代码。
 
 - **零外部核心依赖**：不需要预装任何 agent core，也没有「先编译 core 再装领域包」的前置步骤；
-- **零状态**：不写盘、不建资产目录、没有 bootstrap。13 个 Skill 只从包内 `skills/` 读取，升级重装即原样覆盖；
+- **包本身零状态**：不写全局目录、没有 bootstrap；Skill 只从包内 `skills/` 读取。`asset` 工具只在项目 `.agent/assets/` 下读写 staging / packs，共享资产库只读挂载；
 - **只读 Skill**：Skill 正文不会被运行时改写，行为可审计、可 diff；
 - **兼容性有闸门**：包自带 `engines.dsh` 声明，dsh 在安装期就会拒绝装到不兼容的运行时上。
 
@@ -35,13 +35,13 @@
 |--------|-------------------|
 | 你自己想「该怎么让 agent 写代码」 | Leader 人设有完整 6 阶段流程：对齐 → 隔离 → 环境 → 编码 → 自测 → 交付 |
 | 编码和验收是同一个人，自己证明自己对 | 编码派 `dev-developer`、验收派 `dev-tester`，**独立副本 + 独立复跑**才算通过 |
-| 每次都要口头交代测试怎么跑、worktree 怎么建 | 13 个 Skill 把环境规程、按栈测试命令、项目分支/PR 收口规范、缺陷分级全部固化 |
+| 每次都要口头交代测试怎么跑、worktree 怎么建 | 16 个 Skill 把环境规程、按栈测试命令、项目分支/PR 收口规范、缺陷分级全部固化 |
 | 子 agent 工具面靠猜，容易给出写权限 | 3 个 preset 预置工具面：Leader 可派发、Developer 可写、Tester 只读兜底 |
 | dsh 升级后插件悄悄崩 | 安装期兼容性准入 + 每次合并 main 跑「安装 → 组合 → 冷启动」三层校验 |
 
 ## 装上就有
 
-### 13 个领域 Skill
+### 16 个领域 Skill
 
 | Skill | 作用 |
 |-------|------|
@@ -58,16 +58,17 @@
 | `dev-release` | 语义化版本、可重复构建、changelog、灰度回滚 |
 | `dev-observability` | 日志 / 指标 / 追踪 / 告警，字段与脱敏、告警可行动 |
 | `dev-retro` | 复盘触发条件、失败模式分类与单变量改进提案 |
+| `asset-first` | 资产飞轮：先查再写、第二次就 L3、卡结束 settle；验证/取证/环境/操作都适用 |
 
-全部只读：没有 `templates/`、没有 seeds、没有资产落盘步骤。
+Skill 全部只读：没有 `templates/`、没有 seeds；资产脚本由 `asset` 工具在项目 `.agent/assets/` 下增量维护，共享库只读。
 
 ### 3 个 agent preset
 
 | preset | 用途 | 工具面 |
 |--------|------|--------|
-| `dev-leader` | 主会话默认 preset / 调度者 | fs / bash / jobs / skill / todo / subagent / subagent-control / list-agents |
-| `dev-developer` | 编码执行者（写操作必须显式指定） | fs / bash / jobs / skill / todo + Developer persona |
-| `dev-tester` | 验证执行者 / 子 agent 漏传兜底 | fs / bash / jobs / skill / todo + Tester persona |
+| `dev-leader` | 主会话默认 preset / 调度者 | fs / bash / jobs / skill / todo / asset / subagent / subagent-control / list-agents |
+| `dev-developer` | 编码执行者（写操作必须显式指定） | fs / bash / jobs / skill / todo / asset + Developer persona |
+| `dev-tester` | 验证执行者 / 子 agent 漏传兜底 | fs / bash / jobs / skill / todo / asset + Tester persona |
 
 ## 快速开始
 
@@ -177,8 +178,8 @@ make compat DSH_VERSION=0.2.2-rc.2   # 等价写法
 ```bash
 pnpm typecheck        # tsc --noEmit
 pnpm build            # 产出 dist-server/；npm pack 的内容依赖它
-pnpm test             # vitest run：6 个 spec、96 个用例
-pnpm verify:install   # 18/18 PASS：13 个 SKILL.md + 5 个 references
+pnpm test             # vitest run：9 个 spec、132 个用例
+pnpm verify:install   # 21/21 PASS：16 个 SKILL.md + 5 个 references
 pnpm compat           # dsh 兼容性三层校验（默认 npm latest）
 npm pack --dry-run    # 发布内容清单（必须在 build 之后执行）
 ```
@@ -254,22 +255,22 @@ dsh plugin --profile <p> add dsh-rsi-agent@0.1.x   # 回滚必需：旧 patch �
 │  ├─ index.ts                   # 包入口：re-export 插件三要素与领域数据
 │  ├─ plugin.ts                  # 宿主层插件：只做 dev 会话权限预设切换（persona 在 preset 层）
 │  ├─ assets.ts                  # 资产共享实现：按名字取 Skill 的工厂 + 三份技能清单
-│  ├─ assets-leader.ts           # preset 层插件：Leader 的 6 个 Skill
-│  ├─ assets-developer.ts        # preset 层插件：Developer 的 7 个 Skill
-│  ├─ assets-tester.ts           # preset 层插件：Tester 的 4 个 Skill
-│  ├─ domain.ts                  # DEV_DOMAIN：id / version / displayName / persona / 13 个 Skill 元数据
+│  ├─ assets-leader.ts           # preset 层插件：Leader 的 7 个 Skill
+│  ├─ assets-developer.ts        # preset 层插件：Developer 的 8 个 Skill
+│  ├─ assets-tester.ts           # preset 层插件：Tester 的 5 个 Skill
+│  ├─ domain.ts                  # DEV_DOMAIN：id / version / displayName / persona / 16 个 Skill 元数据
 │  ├─ persona.ts                 # LEADER_PERSONA：读 persona/LEADER.md 导出人设正文
 │  ├─ persona/LEADER.md          # Leader 人设正文原文（一整块 markdown，唯一来源）
 │  └─ firmware.ts                # SKILL.md 读取 / frontmatter 解析 / SkillRegistration 构造
 ├─ dist-server/                  # 构建产物：pnpm build 生成，git 忽略
-├─ skills/                       # 唯一 Skill 源（13 个只读 Skill + dev-test-strategy/references/）
+├─ skills/                       # 唯一 Skill 源（16 个只读 Skill + dev-test-strategy/references/）
 ├─ scripts/
 │  ├─ copy-assets.mjs            # 把 cordis.patch.yml 等资源复制进 dist-server/
-│  ├─ verify-install.mjs         # 18 项包内自检（CLI + 导出纯函数）
+│  ├─ verify-install.mjs         # 21 项包内自检（CLI + 导出纯函数）
 │  ├─ dsh-compat.sh              # 兼容性三层校验（安装 → 组合 → 冷启动）
 │  ├─ compat-probe.mjs           # 冷启动探针：断言 Skill / preset / 默认 preset
 │  └─ dsh-versions.mjs           # 解析待校验的 dsh 版本，产出 CI matrix
-├─ tests/                        # 6 个 spec：domain / plugin / patch / firmware-registration / verify-install / compat-probe
+├─ tests/                        # 9 个 spec：domain / plugin / patch / firmware-registration / verify-install / compat-probe / asset-core / asset-tool / asset-contract
 ├─ tsconfig.json                 # 类型检查
 ├─ tsconfig.server.json          # 编译到 dist-server/
 └─ Makefile                      # check / compat / stage / publish 入口

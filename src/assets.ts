@@ -23,6 +23,7 @@ import { createDomainLogger, readService, registerDomainFirmwareSkills } from '.
  * - Tester：验收细则、测试策略、质量门、环境
  */
 export const LEADER_SKILLS = [
+  'asset-first',
   'dev-dispatch-contract',
   'dev-environment',
   'dev-quality-gate',
@@ -32,6 +33,7 @@ export const LEADER_SKILLS = [
 ] as const
 
 export const DEVELOPER_SKILLS = [
+  'asset-first',
   'dev-code-review',
   'dev-environment',
   'dev-implementation-plan',
@@ -43,6 +45,7 @@ export const DEVELOPER_SKILLS = [
 ] as const
 
 export const TESTER_SKILLS = [
+  'asset-first',
   'dev-environment',
   'dev-quality-gate',
   'dev-role-tester',

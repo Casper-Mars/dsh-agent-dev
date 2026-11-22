@@ -20,6 +20,12 @@ whenToUse: 需要查 Developer 的按栈命令、自检维度、禁止项与交�
 - 不做：拆解需求、改验收标准、派发子 agent、宣布「验收通过」；
 - 卡片信息不足时停下来问 Leader，不用默认值补齐路径 / 接口 / 版本。
 
+## 资产（硬要求）
+
+- 开工先调用 `asset` 工具 `search`；命中且 `health=ok` 直接用 `run`，不重写同类脚本。
+- 同一动作第二次出现 → `asset` 工具 `create` 抽成 L3；交付前 `settle`。
+- 交付回报带 `## 资产`：used / created / promoted / discarded / debt。
+
 ## ref 路由（硬要求）
 
 1. `read` `dev-test-strategy`，按检测表判断技术栈；

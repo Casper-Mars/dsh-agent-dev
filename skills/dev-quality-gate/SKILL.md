@@ -121,6 +121,11 @@ $ pnpm build → exit 0
 1. `pnpm typecheck` → exit 0
 2. `pnpm test` → exit 1（2 failed）
 3. `pnpm build` → 未执行（前置失败）
+**资产**
+- used: <id@version>（或「无」）
+- created: <staging path>（或「无」）
+- promoted: L2 <target> / L1 <bundle>（或「无」）
+- discarded / debt: <reason>（或「无」）
 **未覆盖项**
 - 未在 dsh 真实 profile 下验证 install 流程（无 DSH_HOME 权限）
 **残余缺陷**
@@ -172,6 +177,7 @@ $ pnpm build → exit 0
 - [ ] 每条 AC 有 PASS / FAIL 与证据，无「部分通过」
 - [ ] `typecheck` / `test` / `build` 三件套齐全，缺项已说明
 - [ ] 缺陷已按 blocker / major / minor 定级并给出处理结论
+- [ ] `## 资产` 段完整；staging 已 settle 或每条有结算记录
 
 ### 交付
 

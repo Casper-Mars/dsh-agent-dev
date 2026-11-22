@@ -61,6 +61,7 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
    - 派 Developer：`dev-role-developer` + `dev-test-strategy`
    - 派 Tester：`dev-role-tester` + `dev-test-strategy`
    - 关键词：Wiki 检索「Skill 写作规范 / 派发契约」
+   - 资产：`asset` 工具 `search` 命中的 id（无则写「无」）；新场景写预期复用次数
 9. 交付格式：项目分支 + 本任务 commit hash + diff 范围 <基线>..<commit>；
    证据按 §2.1 分级由 Developer 选（默认 L0/L1；要求 L2 时在本项写理由）；未覆盖项与风险（不 push、不开 PR）
 10. 交付形态与环境限制：`delivery_mode: commit|workspace`；不可写路径（如主仓库 `.git/`）、
