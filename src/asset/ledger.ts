@@ -18,6 +18,7 @@ export interface CardLedger {
   debt: string[]
   actions: { run: number; create: number; audit: number; settle: number }
   stagingSettled: boolean
+  finalized: boolean
   updatedAt: string
 }
 
@@ -44,6 +45,7 @@ function emptyLedger(taskId: string): CardLedger {
     debt: [],
     actions: { run: 0, create: 0, audit: 0, settle: 0 },
     stagingSettled: false,
+    finalized: false,
     updatedAt: new Date().toISOString(),
   }
 }
@@ -81,6 +83,7 @@ export function markCreated(location: LedgerLocation, taskId: string, name: stri
     ledger.created.push(name)
     if (!ledger.pending.includes(name)) ledger.pending.push(name)
     ledger.stagingSettled = false
+    ledger.finalized = false
   })
 }
 
@@ -92,6 +95,7 @@ export function markSettled(location: LedgerLocation, taskId: string, name: stri
     else if (decision === 'debt') ledger.debt.push(name)
     else ledger.promoted.push(`${name} (${decision})`)
     ledger.stagingSettled = ledger.pending.length === 0
+    ledger.finalized = false
   })
 }
 
@@ -101,12 +105,20 @@ export function recordAction(location: LedgerLocation, taskId: string, action: '
   })
 }
 
-export function finalizeLedger(location: LedgerLocation, taskId: string): CardLedger {
+export function finalizeLedger(location: LedgerLocation, taskId: string, projectRoot?: string): CardLedger {
   const ledger = readLedger(location, taskId)
+  if (projectRoot !== undefined) {
+    const stagingDir = path.join(path.resolve(projectRoot), '.agent/assets/staging', taskId)
+    const actual = fs.existsSync(stagingDir)
+      ? fs.readdirSync(stagingDir, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name)
+      : []
+    ledger.pending = actual
+  }
   if (ledger.pending.length > 0) {
     throw new AssetError('SETTLE_CONFLICT', `staging 未结算：${ledger.pending.join('、')}`)
   }
   ledger.stagingSettled = true
+  ledger.finalized = true
   writeLedger(location, ledger)
   return ledger
 }

@@ -23,6 +23,35 @@ interface RawAsset {
   runtime?: unknown
 }
 
+
+/** 常见口语标签 → 资产 tags 的别名；避免 agent 搜“抽屉/外链”命中不了 web/ui。 */
+const TAG_ALIASES: Record<string, string[]> = {
+  '抽屉': ['ui', 'drawer'],
+  '外链': ['ui', 'link', 'url'],
+  '链接': ['ui', 'link', 'url'],
+  'url': ['ui', 'url', 'link'],
+  '断言': ['assertions', 'test'],
+  '判定': ['assertions', 'url'],
+  '预览': ['preview'],
+  'preview': ['preview'],
+  '空态': ['states'],
+  'mock': ['mock'],
+  '截图': ['screenshot'],
+  'screenshot': ['screenshot'],
+  'verify': ['verify'],
+  'node': ['node'],
+  'ui': ['ui'],
+  'web': ['web'],
+}
+
+export function matchesTags(assetTags: string[] | undefined, queryTags: string[]): boolean {
+  const tags = assetTags ?? []
+  return queryTags.every(tag => {
+    const aliases = TAG_ALIASES[tag] ?? [tag]
+    return aliases.some(alias => tags.includes(alias))
+  })
+}
+
 export interface AssetPin {
   library?: string
   runners?: Record<string, string>
@@ -235,7 +264,7 @@ export function searchAssets(snapshot: RegistrySnapshot, options: SearchOptions 
     return health * 100 + source * 10 + layer
   }
   return snapshot.assets
-    .filter(asset => tags.every(tag => (asset.tags ?? []).includes(tag)))
+    .filter(asset => matchesTags(asset.tags, tags))
     .sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id))
 }
 

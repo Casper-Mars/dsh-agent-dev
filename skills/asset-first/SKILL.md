@@ -29,6 +29,7 @@ whenToUse: 开工前、准备写第二个同类脚本、资产运行失败、卡
    - `project_root` **必填**：传当前任务 worktree 的项目根，不要传 `/workspace`；缺了工具会直接报错。
    - 返回 `items`（id / layer / source / health / known_limits）与 `issues`；
    - 项目资产优先于共享库；`health=stale|invalid` 先诊断，不直接绕过。
+   - search 会做标签别名（抽屉/外链/断言等），并返回 staging/debt 里的本地资产；同名已存在时 create 会被拒，先复用或 settle。
 2. **plan**：在任务笔记里写一句：`use <id>`、`create <name>` 或 `update <id>`，并写预期复用次数。
 3. **use**：`asset({action:'run', task_id, id, scenario:'<场景 JSON>', project_root, scenario_root?})`
    - `scenario_root` 可选：tester 的验证副本不是项目根时，用它放场景；
@@ -70,7 +71,7 @@ whenToUse: 开工前、准备写第二个同类脚本、资产运行失败、卡
 - `discard`：用一次就废，删除并写 reason；
 - `debt`：有价值但这次没时间，移入持久 debt 区并写 `debt.yaml`，14 天 TTL。
 
-**不允许留在 staging**。卡结束必须 `asset({action:'finalize', task_id, project_root})`；pending 未清空时，所有非 `asset` 工具都会被拦。
+**不允许留在 staging**。卡结束必须 `asset({action:'finalize', task_id, project_root})`；pending 未清空时，`echuan_task_report` 这类交付报告会被拦，`bash/read/write` 等实现工具照常放行。
 
 ## 失败处理
 

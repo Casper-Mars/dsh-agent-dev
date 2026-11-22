@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { stringify as stringifyYaml } from 'yaml'
-import { createStagingAsset, runAsset, settleStagingAsset } from '../src/asset'
+import { createStagingAsset, findLocalAsset, loadSnapshot, runAsset, searchAssets, searchLocalAssets, settleStagingAsset } from '../src/asset'
 import { apply, buildAssetTool } from '../src/tools/asset'
 
 function write(file: string, content: string): void {
@@ -58,6 +58,30 @@ describe('asset advanced', () => {
     expect(result.diagnosis?.code).toBe('EMPTY_ASSERTIONS')
   })
 
+  it('matches colloquial tags through aliases and searches local staging', () => {
+    write(path.join(projectRoot, '.agent/assets/packs/hit/run.mjs'), '// hit')
+    writeYaml(path.join(projectRoot, '.agent/assets/registry.yaml'), {
+      version: 1,
+      assets: [{ id: 'hit', layer: 'L2', entry: 'packs/hit/run.mjs', tags: ['web', 'ui'], last_verified: '2026-11-22' }],
+    })
+    const snapshot = loadSnapshot({ projectRoot })
+    expect(searchAssets(snapshot, { tags: ['抽屉', '外链'] }).map(asset => asset.id)).toEqual(['hit'])
+
+    createStagingAsset({ projectRoot, taskId: 't1', name: 'local-hit', purpose: 'x', tags: ['ui'] })
+    expect(searchLocalAssets({ projectRoot, tags: ['抽屉'] }).map(asset => asset.id)).toContain('local-hit')
+    expect(findLocalAsset({ projectRoot, name: 'local-hit' })?.health).toBe('staging')
+  })
+
+  it('refuses to create a duplicate name that exists in debt', () => {
+    createStagingAsset({ projectRoot, taskId: 't1', name: 'dup', purpose: 'x' })
+    settleStagingAsset({ projectRoot, name: 'dup', decision: 'debt', debtRoot: path.join(stateRoot, 'debt') })
+    const tool = buildAssetTool({ projectRoot, stateRoot })
+    return tool.execute({ action: 'create', task_id: 't2', name: 'dup', purpose: 'x', project_root: projectRoot }, execStub()).then((result: any) => {
+      expect(result.ok).toBe(false)
+      expect(result.error.code).toBe('SETTLE_CONFLICT')
+    })
+  })
+
   it('defaults to propose-l2 and rejects promote-l2 without allowRepoWrite', () => {
     createStagingAsset({ projectRoot, taskId: 't1', name: 'candidate', purpose: 'x' })
     const proposed = settleStagingAsset({ projectRoot, name: 'candidate', decision: 'propose-l2' })
@@ -109,9 +133,11 @@ describe('asset advanced', () => {
     const created = await tool.execute({ action: 'create', task_id: 't1', name: 'pending', purpose: 'x', project_root: projectRoot }, execStub(agent))
     expect(created.ok).toBe(true)
 
-    const denied = await listener({ name: 'bash', agent }, async () => ({ kind: 'enter' }))
+    const bashAllowed = await listener({ name: 'bash', agent }, async () => ({ kind: 'enter' }))
+    expect(bashAllowed.kind).toBe('enter')
+    const denied = await listener({ name: 'echuan_task_report', args: { task_id: 't1', summary_md: '## 改了什么\n- x' }, agent }, async () => ({ kind: 'enter' }))
     expect(denied.kind).toBe('deny')
-    expect(denied.reason).toContain('staging 未结算')
+    expect(denied.reason).toContain('交付报告被拦')
 
     const settled = await tool.execute({ action: 'settle', task_id: 't1', id: 'pending', decision: 'discard', project_root: projectRoot }, execStub(agent))
     expect(settled.ok).toBe(true)
@@ -121,7 +147,7 @@ describe('asset advanced', () => {
     expect(finalized.data.asset_block).toContain('## 资产')
     expect(finalized.data.asset_block).toContain('staging: settled')
 
-    const allowed = await listener({ name: 'bash', agent }, async () => ({ kind: 'enter' }))
+    const allowed = await listener({ name: 'echuan_task_report', args: { task_id: 't1', summary_md: '## 资产\n- used: 无' }, agent }, async () => ({ kind: 'enter' }))
     expect(allowed.kind).toBe('enter')
   })
 

@@ -34,6 +34,8 @@ import {
   recordAction,
   updateTrust,
   usageCounts,
+  searchLocalAssets,
+  findLocalAsset,
   type RegistrySnapshot,
 } from '../asset/index.js'
 
@@ -55,21 +57,6 @@ export interface AssetToolConfig {
   maxCreatesPerTask?: number
 }
 
-const pendingByAgent = new WeakMap<object, Set<string>>()
-
-function pendingOf(agent: unknown): Set<string> | undefined {
-  return agent !== null && typeof agent === 'object' ? pendingByAgent.get(agent as object) : undefined
-}
-
-function ensurePending(agent: unknown): Set<string> | undefined {
-  if (agent === null || typeof agent !== 'object') return undefined
-  let set = pendingByAgent.get(agent as object)
-  if (set === undefined) {
-    set = new Set<string>()
-    pendingByAgent.set(agent as object, set)
-  }
-  return set
-}
 
 interface AgentLike {
   session?: { header?: { cwd?: unknown } }
@@ -235,6 +222,24 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
         if (action === 'search') {
           const snapshot = loadSnapshot({ projectRoot, ...(libraryRoot === undefined ? {} : { libraryRoot }) })
           const usage = usageCounts(ledgerLocation)
+          const localItems = searchLocalAssets({
+            projectRoot,
+            ...(config.stateRoot === undefined ? {} : { stateRoot: config.stateRoot }),
+            tags: args.tags,
+          }).map(asset => ({
+            id: asset.id,
+            layer: asset.layer,
+            source: asset.source,
+            version: null,
+            health: asset.health,
+            last_verified: null,
+            usage_count: 0,
+            tags: asset.tags,
+            known_limits: [],
+            purpose: asset.purpose ?? null,
+            entry: asset.entry,
+            path: asset.path,
+          }))
           const items = searchAssets(snapshot, { tags: args.tags }).map(asset => ({
             id: asset.id,
             layer: asset.layer,
@@ -248,7 +253,7 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
             purpose: asset.purpose ?? null,
             entry: asset.entry,
           }))
-          return { action, ok: true, data: asJson({ items, ...summarizeSnapshot(snapshot) }) }
+          return { action, ok: true, data: asJson({ items: [...items, ...localItems], ...summarizeSnapshot(snapshot) }) }
         }
 
         if (action === 'create') {
@@ -263,6 +268,14 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
           }
           if (args.layer === 'L2') {
             throw new AssetError('INVALID_MANIFEST', 'create 只支持 L3；L2 由 settle propose-l2 产生')
+          }
+          const existing = findLocalAsset({
+            projectRoot,
+            ...(config.stateRoot === undefined ? {} : { stateRoot: config.stateRoot }),
+            name: args.name ?? args.id ?? '',
+          })
+          if (existing !== undefined) {
+            throw new AssetError('SETTLE_CONFLICT', `同名资产已存在（${existing.health}）：${existing.path}；先 search/settle，不要重复 create`)
           }
           const ledger = readLedger(ledgerLocation, args.task_id)
           if (ledger.actions.create >= (config.maxCreatesPerTask ?? 1)) {
@@ -280,7 +293,6 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
           })
           const name = args.name ?? args.id ?? ''
           markCreated(ledgerLocation, args.task_id, name)
-          ensurePending(exec.agent)?.add(name)
           return { action, ok: true, data: asJson({ staging_path: created.stagingPath, files: created.files }) }
         }
 
@@ -337,8 +349,7 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
 
         if (action === 'finalize') {
           if (taskId === '') throw new AssetError('INVALID_MANIFEST', 'finalize 需要 task_id')
-          const ledger = finalizeLedger(ledgerLocation, taskId)
-          ensurePending(exec.agent)?.clear()
+          const ledger = finalizeLedger(ledgerLocation, taskId, projectRoot)
           return { action, ok: true, data: asJson({ asset_block: assetBlock(ledger), ledger }) }
         }
 
@@ -358,7 +369,6 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
             ...(config.debtRoot === undefined ? {} : { debtRoot: config.debtRoot }),
           })
           if (taskId !== '') markSettled(ledgerLocation, taskId, target, args.decision)
-          ensurePending(exec.agent)?.delete(target)
           return {
             action,
             ok: true,
@@ -396,9 +406,16 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
 export function apply(ctx: Context, config: AssetToolConfig = {}): void {
   ctx.tools.register(buildAssetTool(config))
   ctx.on('tools/pre-execute', async (exec, next) => {
-    const pending = pendingOf(exec.agent)
-    if (pending !== undefined && pending.size > 0 && exec.name !== 'asset') {
-      return { kind: 'deny', reason: `staging 未结算：${[...pending].join('、')}；先 asset finalize` }
+    const args = (exec as { args?: Record<string, unknown> }).args
+    // 只拦“交付报告”形状，不认 kit 的工具名；bash/write/read 等实现工具照常放行。
+    if (args === undefined || typeof args.summary_md !== 'string' || typeof args.task_id !== 'string') return next()
+    const ledger = readLedger({
+      ...(config.stateRoot === undefined ? {} : { stateRoot: config.stateRoot }),
+      projectRoot: config.projectRoot ?? '/workspace',
+    }, args.task_id)
+    if (ledger.pending.length > 0 || ledger.finalized !== true) {
+      const detail = ledger.pending.length > 0 ? `staging 未结算：${ledger.pending.join('、')}` : '未调用 asset finalize'
+      return { kind: 'deny', reason: `交付报告被拦：${detail}；先 asset finalize` }
     }
     return next()
   }, { prepend: true })
