@@ -121,7 +121,7 @@ $ pnpm build → exit 0
 1. `pnpm typecheck` → exit 0
 2. `pnpm test` → exit 1（2 failed）
 3. `pnpm build` → 未执行（前置失败）
-**资产**
+## 资产
 - used: <id@version>（或「无」）
 - created: <staging path>（或「无」）
 - promoted: L2 <target> / L1 <bundle>（或「无」）
