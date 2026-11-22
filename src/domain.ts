@@ -48,7 +48,7 @@ function skill(name: string, description: string): DevSkill {
 /** `dev` 领域：16 个只读 Skill + Leader 人设。 */
 export const DEV_DOMAIN: DevDomain = {
   id: 'dev',
-  version: '0.4.1',
+  version: '0.5.0',
   displayName: 'Dev Domain',
   personaMarkdown: LEADER_PERSONA,
   skills: [
