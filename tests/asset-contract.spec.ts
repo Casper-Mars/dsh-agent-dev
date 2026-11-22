@@ -40,6 +40,8 @@ describe('asset tool contract', () => {
     const gate = read('skills/dev-quality-gate/SKILL.md')
     expect(gate).toContain('## 资产')
     expect(gate).toContain('staging 已 settle')
+    expect(gate).toContain('报告缺 `## 资产` 段')
+    expect(gate).toContain('打回')
 
     const leader = read('src/persona/LEADER.md')
     expect(leader).toContain('staging 已 settle')

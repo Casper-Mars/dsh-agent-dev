@@ -103,6 +103,7 @@ $ pnpm build → exit 0
 - 任一 AC 无证据或无法复现；`typecheck` / `test` / `build` 任一非 0 且未解释；
 - 引入任务范围外的改动（格式化全仓库、升级依赖、改无关模块）；
 - 子 agent 报告与 `git diff` 事实不符；
+- 报告缺 `## 资产` 段，或 staging 有未结算条目（Leader 必须在 triage 时检查）；
 - Tester 判 `blocker` / `major`；
 
 ### 7. 报告模板（Tester 交付、Leader 转述都用这个）
@@ -176,6 +177,7 @@ $ pnpm build → exit 0
 - [ ] 至少一条独立断言，未完全复用被测方脚本
 - [ ] 每条 AC 有 PASS / FAIL 与证据，无「部分通过」
 - [ ] `typecheck` / `test` / `build` 三件套齐全，缺项已说明
+- [ ] Tester 完成报告含 `## 资产`（used / created）
 - [ ] 缺陷已按 blocker / major / minor 定级并给出处理结论
 - [ ] `## 资产` 段完整；staging 已 settle 或每条有结算记录
 

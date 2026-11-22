@@ -186,6 +186,9 @@ export function loadSnapshot(options: LoadSnapshotOptions): RegistrySnapshot {
   const projectAssets = parseRegistryFile(path.join(projectRootAssets, 'registry.yaml'), projectRootAssets, 'project', issues, now)
 
   const pin = loadPin(projectRoot)
+  if (options.libraryRoot !== undefined && pin.library === undefined) {
+    issues.push({ code: 'PIN_MISSING', message: '缺少 .agent/assets.yaml 的 library pin；请确认 project_root 指向任务 worktree' })
+  }
   let libraryRoot: string | undefined
   let libraryVersion: string | undefined
   let libraryAssets: ResolvedAsset[] = []

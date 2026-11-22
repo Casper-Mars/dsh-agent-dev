@@ -25,7 +25,8 @@ whenToUse: 开工前、准备写第二个同类脚本、资产运行失败、卡
 
 ## 开工三步
 
-1. **search**：`asset({action:'search', tags:['web','ui'], project_root:'<项目根>'})`
+1. **search**：`asset({action:'search', tags:['web','ui'], project_root:'<任务 worktree 项目根>'})`
+   - `project_root` **必填**：传当前任务 worktree 的项目根，不要传 `/workspace`；缺了工具会直接报错。
    - 返回 `items`（id / layer / source / health / known_limits）与 `issues`；
    - 项目资产优先于共享库；`health=stale|invalid` 先诊断，不直接绕过。
 2. **plan**：在任务笔记里写一句：`use <id>`、`create <name>` 或 `update <id>`，并写预期复用次数。
@@ -90,8 +91,8 @@ whenToUse: 开工前、准备写第二个同类脚本、资产运行失败、卡
 新卡要验证「列表行点击开抽屉」，search 未命中：
 
 1. 先写 `node /tmp/check-drawer.mjs` 跑通；
-2. `asset({action:'create', task_id:'t_123', name:'verify-drawer', purpose:'验证只读抽屉', inputs:['scenario.json'], outputs:['result.json'], reuse_expect:4})`；
+2. `asset({action:'create', project_root:'<任务 worktree 项目根>', task_id:'t_123', name:'verify-drawer', purpose:'验证只读抽屉', inputs:['scenario.json'], outputs:['result.json'], reuse_expect:4})`；
 3. 把 base_url / viewport / expected_fields 抽到 `scenario.json`，补 `test/smoke.sh`；
-4. `asset({action:'run', id:'verify-drawer', scenario:'scenario.json'})` 通过，本卡返工轮次继续复用；
-5. 卡结束 `asset({action:'settle', id:'verify-drawer', decision:'promote-l2'})`；
+4. `asset({action:'run', project_root:'<任务 worktree 项目根>', id:'verify-drawer', scenario:'scenario.json'})` 通过，本卡返工轮次继续复用；
+5. 卡结束 `asset({action:'settle', project_root:'<任务 worktree 项目根>', id:'verify-drawer', decision:'promote-l2'})`；
 6. 下一张抽屉卡 search 命中，直接 run，不再写脚本。

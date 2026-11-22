@@ -44,12 +44,13 @@ interface ToolExecLike extends Pick<ToolRunContext, 'signal'> {
   agent?: AgentLike | null
 }
 
-function projectRootOf(exec: ToolExecLike, config: AssetToolConfig, explicit?: string): string {
+function projectRootOf(_exec: ToolExecLike, config: AssetToolConfig, explicit?: string): string {
   if (explicit !== undefined && explicit.trim() !== '') return explicit
   if (config.projectRoot !== undefined && config.projectRoot.trim() !== '') return config.projectRoot
-  const cwd = exec.agent?.session?.header?.cwd
-  if (typeof cwd === 'string' && cwd.trim() !== '') return cwd
-  return process.cwd()
+  throw new AssetError(
+    'INVALID_MANIFEST',
+    'project_root 必填：传当前任务 worktree 的项目根（不要依赖 session cwd，/workspace 不是项目根）',
+  )
 }
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
@@ -165,7 +166,7 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
       },
       project_root: {
         type: 'string',
-        description: '可选：项目根（绝对路径）；缺省用 agent session header 的 cwd，再退回 process.cwd()。',
+        description: '必填：当前任务 worktree 的项目根（绝对路径）；不要传 /workspace。',
       },
     },
     output: {
@@ -183,9 +184,9 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
     },
     async execute(args, exec) {
       const action = args.action
-      const projectRoot = projectRootOf(exec as ToolExecLike, config, args.project_root)
       const libraryRoot = config.libraryRoot
       try {
+        const projectRoot = projectRootOf(exec as ToolExecLike, config, args.project_root)
         if (action === 'search') {
           const snapshot = loadSnapshot({ projectRoot, ...(libraryRoot === undefined ? {} : { libraryRoot }) })
           const items = searchAssets(snapshot, { tags: args.tags }).map(asset => ({

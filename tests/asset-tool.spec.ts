@@ -92,6 +92,14 @@ describe('asset tool', () => {
     expect(result.data.artifacts).toEqual(['shot.png'])
   })
 
+  it('requires project_root instead of falling back to session cwd', async () => {
+    const tool = buildAssetTool()
+    const result = await tool.execute({ action: 'search', tags: ['web'] }, execStub()) as any
+    expect(result.ok).toBe(false)
+    expect(result.error.code).toBe('INVALID_MANIFEST')
+    expect(result.error.message).toContain('project_root 必填')
+  })
+
   it('returns structured errors instead of throwing', async () => {
     const tool = buildAssetTool({ projectRoot })
     const missing = await tool.execute({ action: 'run', id: 'no-such', scenario: 'scenario.json' }, execStub()) as any
