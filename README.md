@@ -178,7 +178,7 @@ make compat DSH_VERSION=0.2.2-rc.2   # 等价写法
 ```bash
 pnpm typecheck        # tsc --noEmit
 pnpm build            # 产出 dist-server/；npm pack 的内容依赖它
-pnpm test             # vitest run：9 个 spec、132 个用例
+pnpm test             # vitest run：11 个 spec、145 个用例
 pnpm verify:install   # 21/21 PASS：16 个 SKILL.md + 5 个 references
 pnpm compat           # dsh 兼容性三层校验（默认 npm latest）
 npm pack --dry-run    # 发布内容清单（必须在 build 之后执行）
