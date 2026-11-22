@@ -36,6 +36,10 @@
         plugins:
           - id: dev-assets-leader
             name: dsh-agent-dev/assets/leader
+          - id: echuan-tools
+            name: dsh-echuan/tools/leader
+          - id: task-tools
+            name: dsh-agent-base/tools/task-readonly
           # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
           - id: tool-asset
             name: dsh-agent-dev/tools/asset
@@ -86,6 +90,8 @@
         plugins:
           - id: dev-assets-developer
             name: dsh-agent-dev/assets/developer
+          - id: echuan-tools
+            name: dsh-echuan/tools/readonly
           # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
           - id: tool-asset
             name: dsh-agent-dev/tools/asset
@@ -161,6 +167,8 @@
         plugins:
           - id: dev-assets-tester
             name: dsh-agent-dev/assets/tester
+          - id: echuan-tools
+            name: dsh-echuan/tools/readonly
           # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
           - id: tool-asset
             name: dsh-agent-dev/tools/asset

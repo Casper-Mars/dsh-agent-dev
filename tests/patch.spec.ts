@@ -159,3 +159,20 @@ describe('preset 路由', () => {
     })
   })
 })
+
+describe('工具面 preset 化', () => {
+  it('dev-leader 挂 echuan leader + core task-readonly', () => {
+    const names = presetPluginNames('preset-dev-leader')
+    expect(names).toContain('dsh-echuan/tools/leader')
+    expect(names).toContain('dsh-agent-base/tools/task-readonly')
+  })
+
+  it('dev-developer / dev-tester 只挂 echuan readonly，且不挂任何 core task-*', () => {
+    for (const id of ['preset-dev-developer', 'preset-dev-tester']) {
+      const names = presetPluginNames(id)
+      expect(names).toContain('dsh-echuan/tools/readonly')
+      expect(names.filter(name => name.startsWith('dsh-echuan/'))).toEqual(['dsh-echuan/tools/readonly'])
+      expect(names.some(name => name.startsWith('dsh-agent-base/tools/task-'))).toBe(false)
+    }
+  })
+})
