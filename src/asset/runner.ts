@@ -10,6 +10,7 @@ export interface RunAssetOptions {
   libraryRoot?: string
   id: string
   scenario?: string
+  scenarioRoot?: string
   smoke?: boolean
   timeoutMs?: number
   signal?: AbortSignal
@@ -38,11 +39,11 @@ function resolveCommand(asset: ResolvedAsset, scenarioPath?: string): { bin: str
   return { bin, args }
 }
 
-function resolveScenario(asset: ResolvedAsset, projectRoot: string, scenario: string): string {
+function resolveScenario(asset: ResolvedAsset, projectRoot: string, scenarioRoot: string | undefined, scenario: string): string {
   const abs = path.resolve(projectRoot, scenario)
   if (!fs.existsSync(abs)) throw new AssetError('ASSET_NOT_FOUND', `场景文件不存在：${abs}`)
   const real = fs.realpathSync(abs)
-  const roots = [path.resolve(projectRoot), asset.registryRoot]
+  const roots = [path.resolve(projectRoot), path.resolve(scenarioRoot ?? projectRoot), asset.registryRoot]
   if (!roots.some(root => isInside(path.resolve(root), real))) {
     throw new AssetError('PATH_ESCAPE', `场景文件越界：${abs}`)
   }
@@ -91,6 +92,15 @@ export async function runAsset(options: RunAssetOptions): Promise<RunResult> {
   if (!fs.existsSync(asset.entryPath)) {
     throw new AssetError('ASSET_NOT_FOUND', `${asset.id}: entry 不存在（${asset.entryPath}）`)
   }
+  for (const requirement of asset.requires ?? []) {
+    const dependency = snapshot.assets.find(item => item.id === requirement.id)
+    if (dependency === undefined || dependency.health === 'missing') {
+      throw new AssetError('ASSET_NOT_FOUND', `${asset.id}: 依赖缺失 ${requirement.id}`)
+    }
+    if (requirement.version !== undefined && dependency.version !== undefined && dependency.version !== requirement.version) {
+      throw new AssetError('INVALID_MANIFEST', `${asset.id}: 依赖版本不匹配 ${requirement.id}@${requirement.version}（实际 ${dependency.version}）`)
+    }
+  }
 
   let bin: string
   let args: string[]
@@ -106,7 +116,7 @@ export async function runAsset(options: RunAssetOptions): Promise<RunResult> {
     if (options.scenario === undefined || options.scenario.trim() === '') {
       throw new AssetError('INVALID_MANIFEST', `${asset.id}: 非 smoke 运行必须提供 scenario`)
     }
-    scenarioPath = resolveScenario(asset, projectRoot, options.scenario)
+    scenarioPath = resolveScenario(asset, projectRoot, options.scenarioRoot, options.scenario)
     const command = resolveCommand(asset, scenarioPath)
     bin = command.bin
     args = command.args
@@ -184,6 +194,9 @@ export async function runAsset(options: RunAssetOptions): Promise<RunResult> {
   } else if (result !== null && typeof result === 'object' && (result as Record<string, unknown>).status === 'failed') {
     status = 'failed'
     diagnosis = { code: 'RUN_FAILED', message: '结果文件 status=failed', details: result }
+  } else if (result !== null && typeof result === 'object' && Array.isArray((result as Record<string, unknown>).assertions) && ((result as Record<string, unknown>).assertions as unknown[]).length === 0) {
+    status = 'failed'
+    diagnosis = { code: 'EMPTY_ASSERTIONS', message: 'status=passed 但 assertions 为空', details: result }
   }
 
   return {

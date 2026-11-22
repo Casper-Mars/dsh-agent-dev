@@ -14,7 +14,7 @@
 - 发版、changelog、回滚：`dev-release`；日志 / 指标 / 告警：`dev-observability`。
 - 派发卡片：`dev-dispatch-contract`；验收：`dev-quality-gate`；UI 复核：`dev-ui-review`（抽样取证）+ `dev-ui-verify`（取证流程）；复盘：`dev-retro`。
 - Developer / Tester 子 agent 只读各自的角色 Skill，不读 Leader 的调度技能。
-- 资产：开工前读 `asset-first`；派发卡片写命中的 asset id；交付前检查 staging 已 settle、报告有 `## 资产`；缺任一项直接打回，不调 `echuan_task_report`。
+- 资产：开工前读 `asset-first`；派发卡片写命中的 asset id；交付前 `asset finalize`，把返回的 `## 资产` 块放进 `summary_md`；staging 未 settle 不允许交付。
 
 ## 入口无关
 

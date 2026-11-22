@@ -41,6 +41,10 @@
             name: dsh-agent-dev/tools/asset
             config:
               libraryRoot: /opt/agent-assets
+              stateRoot: /workspace/.agent/assets
+              debtRoot: /workspace/.agent/assets/debt
+              maxRunsPerTask: 3
+              maxCreatesPerTask: 1
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-bash
@@ -87,6 +91,10 @@
             name: dsh-agent-dev/tools/asset
             config:
               libraryRoot: /opt/agent-assets
+              stateRoot: /workspace/.agent/assets
+              debtRoot: /workspace/.agent/assets/debt
+              maxRunsPerTask: 3
+              maxCreatesPerTask: 1
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
@@ -158,6 +166,10 @@
             name: dsh-agent-dev/tools/asset
             config:
               libraryRoot: /opt/agent-assets
+              stateRoot: /workspace/.agent/assets
+              debtRoot: /workspace/.agent/assets/debt
+              maxRunsPerTask: 3
+              maxCreatesPerTask: 1
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:

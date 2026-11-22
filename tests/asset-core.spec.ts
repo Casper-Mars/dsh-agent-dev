@@ -151,7 +151,7 @@ describe('asset core', () => {
     expect(existsSync(path.join(created.stagingPath, 'asset.yaml'))).toBe(true)
     expect(existsSync(path.join(created.stagingPath, 'test/smoke.sh'))).toBe(true)
 
-    const promoted = settleStagingAsset({ projectRoot, name: 'verify-drawer', decision: 'promote-l2', owner: 'tester' })
+    const promoted = settleStagingAsset({ projectRoot, name: 'verify-drawer', decision: 'promote-l2', owner: 'tester', allowRepoWrite: true })
     expect(promoted.registryUpdated).toBe(true)
     expect(existsSync(path.join(projectRoot, '.agent/assets/packs/verify-drawer/run.mjs'))).toBe(true)
     const registry = readFileSync(path.join(projectRoot, '.agent/assets/registry.yaml'), 'utf8')
@@ -174,9 +174,9 @@ describe('asset core', () => {
 
   it('rejects duplicate staging promotion unless forced', () => {
     createStagingAsset({ projectRoot, taskId: 't1', name: 'dup', purpose: 'x' })
-    settleStagingAsset({ projectRoot, name: 'dup', decision: 'promote-l2' })
+    settleStagingAsset({ projectRoot, name: 'dup', decision: 'promote-l2', allowRepoWrite: true })
     createStagingAsset({ projectRoot, taskId: 't2', name: 'dup', purpose: 'x' })
-    expect(() => settleStagingAsset({ projectRoot, name: 'dup', decision: 'promote-l2' })).toThrow(AssetError)
+    expect(() => settleStagingAsset({ projectRoot, name: 'dup', decision: 'promote-l2', allowRepoWrite: true })).toThrow(AssetError)
   })
 
   it('audits stale, unused, broken and duplicates', () => {

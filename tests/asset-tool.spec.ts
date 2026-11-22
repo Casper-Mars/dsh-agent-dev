@@ -64,6 +64,7 @@ describe('asset tool', () => {
       id: 'verify-drawer',
       decision: 'promote-l2',
       owner: 'tester',
+      allow_repo_write: true,
     }, execStub()) as any
     expect(settled.ok).toBe(true)
     expect(settled.data.registry_updated).toBe(true)
@@ -112,6 +113,7 @@ describe('asset tool', () => {
   it('registers exactly one tool named asset', async () => {
     const registered: string[] = []
     const ctx = {
+      on: () => {},
       tools: {
         register: (tool: { name: string }) => {
           registered.push(tool.name)

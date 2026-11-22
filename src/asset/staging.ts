@@ -18,6 +18,7 @@ interface StagingManifest {
   status?: string
   tags?: string[]
   known_limits?: string[]
+  requires?: { id: string; version?: string }[]
 }
 
 function asStringArray(value: unknown): string[] | undefined {
@@ -66,6 +67,7 @@ function readManifest(dir: string): StagingManifest {
     ...(typeof record.status === 'string' ? { status: record.status } : {}),
     ...(asStringArray(record.tags) === undefined ? {} : { tags: asStringArray(record.tags) }),
     ...(asStringArray(record.known_limits) === undefined ? {} : { known_limits: asStringArray(record.known_limits) }),
+    ...(Array.isArray(record.requires) ? { requires: record.requires.filter((item): item is { id: string; version?: string } => item !== null && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'string') } : {}),
   }
 }
 
@@ -96,6 +98,7 @@ export function createStagingAsset(options: CreateStagingOptions): StagingResult
     status: 'staging',
     tags: options.tags ?? [],
     known_limits: options.knownLimits ?? [],
+    ...(options.requires === undefined ? {} : { requires: options.requires }),
   })
 
   fs.writeFileSync(path.join(dir, 'run.mjs'), [
@@ -105,7 +108,7 @@ export function createStagingAsset(options: CreateStagingOptions): StagingResult
     "const scenarioPath = at >= 0 ? args[at + 1] : 'scenario.json'",
     "const scenario = JSON.parse(readFileSync(scenarioPath, 'utf8'))",
     '// TODO: implement the reusable verification logic here.',
-    'const result = { status: \'passed\', assertions: [], artifacts: [], scenario }',
+    'const result = { status: \'failed\', reason: \'TODO: implement asset logic\', assertions: [], artifacts: [], scenario }',
     "writeFileSync(new URL('./result.json', import.meta.url), JSON.stringify(result, null, 2))",
     'console.log(JSON.stringify({ status: result.status }))',
     '',
@@ -158,8 +161,16 @@ export function settleStagingAsset(options: SettleOptions): SettleResult {
   const dir = findStagingDir(projectRoot, name ?? '', options.stagingPath)
   const manifest = readManifest(dir)
   const assetId = name ?? manifest.id
-  const targetRoot = path.join(assetsRoot, options.decision === 'promote-l2' ? 'packs' : options.decision === 'propose-l1' ? 'promotions' : 'debt')
-  const target = resolveInside(assetsRoot, path.join(targetRoot, assetId))
+  if (options.decision === 'promote-l2' && options.allowRepoWrite !== true) {
+    throw new AssetError('REPO_WRITE_DENIED', 'promote-l2 会写入项目仓库；未传 allowRepoWrite=true，拒绝执行')
+  }
+  const targetBase = options.decision === 'promote-l2'
+    ? path.join(assetsRoot, 'packs')
+    : options.decision === 'propose-l2' || options.decision === 'propose-l1'
+      ? path.join(assetsRoot, 'promotions')
+      : (options.debtRoot === undefined ? path.join(assetsRoot, 'debt') : path.resolve(options.debtRoot))
+  const safeBase = options.decision === 'debt' && options.debtRoot !== undefined ? path.resolve(options.debtRoot) : assetsRoot
+  const target = resolveInside(safeBase, path.join(targetBase, assetId))
 
   if (options.decision === 'discard') {
     removePath(dir)
@@ -187,6 +198,7 @@ export function settleStagingAsset(options: SettleOptions): SettleResult {
       ...(manifest.known_limits === undefined ? {} : { knownLimits: manifest.known_limits }),
       ...(manifest.tags === undefined ? {} : { tags: manifest.tags }),
       ...(manifest.purpose === undefined ? {} : { purpose: manifest.purpose }),
+      ...(manifest.requires === undefined ? {} : { requires: manifest.requires }),
       usageCount: existing?.usageCount ?? 0,
     }
     upsertProjectAsset(projectRoot, asset)
@@ -195,15 +207,17 @@ export function settleStagingAsset(options: SettleOptions): SettleResult {
 
   const meta = {
     id: assetId,
+    layer: options.decision === 'propose-l2' ? 'L2' : options.decision === 'propose-l1' ? 'L1' : undefined,
     source_task: manifest.created_from,
     owner: options.owner ?? manifest.owner ?? 'unknown',
     reason: options.reason ?? '',
     reuse_expect: options.reuseExpect ?? manifest.reuse_expect ?? 2,
     created_at: new Date().toISOString(),
   }
-  fs.writeFileSync(path.join(target, options.decision === 'propose-l1' ? 'promotion.yaml' : 'debt.yaml'), stringifyYaml(meta), 'utf8')
-  if (options.decision === 'propose-l1') {
-    return { status: 'propose-l1', sourcePath: dir, targetPath: target, registryUpdated: false, promotionBundle: target, ...(options.reason === undefined ? {} : { reason: options.reason }) }
+  const metaFile = options.decision === 'propose-l1' || options.decision === 'propose-l2' ? 'promotion.yaml' : 'debt.yaml'
+  fs.writeFileSync(path.join(target, metaFile), stringifyYaml(meta), 'utf8')
+  if (options.decision === 'propose-l1' || options.decision === 'propose-l2') {
+    return { status: options.decision, sourcePath: dir, targetPath: target, registryUpdated: false, promotionBundle: target, ...(options.reason === undefined ? {} : { reason: options.reason }) }
   }
   return { status: 'debt', sourcePath: dir, targetPath: target, registryUpdated: false, ...(options.reason === undefined ? {} : { reason: options.reason }) }
 }

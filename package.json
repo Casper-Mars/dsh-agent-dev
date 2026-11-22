@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-dev",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "type": "module",
   "description": "\u5f00\u53d1\u9886\u57df\u5305\uff08dsh\uff09\uff1a\u539f\u751f\u5355\u5305\u63d0\u4f9b Leader \u4eba\u8bbe\u300116 \u4e2a\u53ea\u8bfb\u9886\u57df Skill \u4e0e 3 \u4e2a agent preset",
   "keywords": [

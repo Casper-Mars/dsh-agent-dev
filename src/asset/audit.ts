@@ -8,6 +8,7 @@ export interface AuditOptions extends LoadSnapshotOptions {
   staleDays?: number
   unusedDays?: number
   minUsage?: number
+  usageCounts?: Map<string, number>
 }
 
 export interface DiagnoseOptions extends LoadSnapshotOptions {
@@ -36,8 +37,9 @@ export function auditAssets(options: AuditOptions): AuditReport {
     if (asset.health === 'missing') broken.push(itemOf(asset, 'entry 不存在'))
     if (asset.health === 'invalid') stale.push(itemOf(asset, 'last_verified 缺失或非法'))
     else if (ageDays !== undefined && ageDays > staleDays) stale.push(itemOf(asset, `超过 ${staleDays} 天未验证`))
-    if ((asset.usageCount ?? 0) < minUsage && ageDays !== undefined && ageDays > unusedDays) {
-      unused.push(itemOf(asset, `使用次数 ${asset.usageCount ?? 0} < ${minUsage}`))
+    const usageCount = options.usageCounts?.get(asset.id) ?? asset.usageCount ?? 0
+    if (usageCount < minUsage && ageDays !== undefined && ageDays > unusedDays) {
+      unused.push(itemOf(asset, `使用次数 ${usageCount} < ${minUsage}`))
     }
   }
 

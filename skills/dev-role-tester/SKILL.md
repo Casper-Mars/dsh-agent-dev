@@ -23,7 +23,8 @@ whenToUse: 需要查 Tester 的按栈命令、验收证据格式、缺陷分级�
 ## 资产（硬要求）
 
 - 验收前先调用 `asset` 工具 `search`；`project_root` 必填（传当前任务 worktree，不传 `/workspace`）；能复用就复用，不重写同类脚本。
-- 新场景用 `asset` 工具 `create` 建 L3；完成报告必须有 `## 资产` 一行（used / created），没有则 Leader 打回。
+- 新场景用 `asset` 工具 `create` 建 L3；测试场景可放验证副本，`scenario_root` 指它，`project_root` 仍指任务 worktree。
+- 完成报告只写**一行** `## 资产`（used / created）；不要为写这一行额外 run/audit。
 - 不直接改共享库；跨项目复用只能 `settle decision='propose-l1'`。
 
 ## ref 路由（硬要求）

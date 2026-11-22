@@ -21,6 +21,13 @@ export interface AssetEntry {
   purpose?: string
   /** 入口运行时；缺省按扩展名推断。 */
   runtime?: 'node' | 'bash' | 'python3'
+  /** L3/L2 依赖的其它资产；缺失/不健康时 run 拒绝。 */
+  requires?: AssetRequirement[]
+}
+
+export interface AssetRequirement {
+  id: string
+  version?: string
 }
 
 export interface RegistryFile {
@@ -63,6 +70,8 @@ export type AssetErrorCode =
   | 'SETTLE_CONFLICT'
   | 'LIBRARY_READ_ONLY'
   | 'IO_ERROR'
+  | 'REPO_WRITE_DENIED'
+  | 'BUDGET_EXCEEDED'
 
 export class AssetError extends Error {
   readonly code: AssetErrorCode
@@ -96,7 +105,7 @@ export interface RunResult {
   diagnosis?: RunDiagnosis
 }
 
-export type SettleDecision = 'promote-l2' | 'propose-l1' | 'discard' | 'debt'
+export type SettleDecision = 'promote-l2' | 'propose-l2' | 'propose-l1' | 'discard' | 'debt'
 
 export interface SettleResult {
   status: SettleDecision | 'failed'
@@ -118,6 +127,7 @@ export interface CreateStagingOptions {
   reuseExpect?: number
   tags?: string[]
   knownLimits?: string[]
+  requires?: AssetRequirement[]
   scenario?: unknown
 }
 
@@ -135,6 +145,8 @@ export interface SettleOptions {
   owner?: string
   reuseExpect?: number
   force?: boolean
+  allowRepoWrite?: boolean
+  debtRoot?: string
 }
 
 export interface AuditItem {

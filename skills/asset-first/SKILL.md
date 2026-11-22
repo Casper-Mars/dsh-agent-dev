@@ -30,7 +30,8 @@ whenToUse: 开工前、准备写第二个同类脚本、资产运行失败、卡
    - 返回 `items`（id / layer / source / health / known_limits）与 `issues`；
    - 项目资产优先于共享库；`health=stale|invalid` 先诊断，不直接绕过。
 2. **plan**：在任务笔记里写一句：`use <id>`、`create <name>` 或 `update <id>`，并写预期复用次数。
-3. **use**：`asset({action:'run', id, scenario:'<场景 JSON>', project_root})`
+3. **use**：`asset({action:'run', task_id, id, scenario:'<场景 JSON>', project_root, scenario_root?})`
+   - `scenario_root` 可选：tester 的验证副本不是项目根时，用它放场景；
    - `smoke:true` 跑资产自测；`timeout_ms` 默认 120000；
    - 只把 `status / exit_code / result_path / artifacts / diagnosis` 当事实，不把 stdout 当结论。
 
@@ -41,7 +42,7 @@ whenToUse: 开工前、准备写第二个同类脚本、资产运行失败、卡
 | search miss | `asset({action:'create', task_id, name, purpose, inputs, outputs, reuse_expect})` | L3 脚手架 |
 | 场景不匹配 | 先加 L2 场景 JSON；runner 表达不了才改 L1 | 新 pack / runner PR |
 | run 失败 | `asset({action:'audit', id})` 看诊断，分类输入 / 环境 / 代码 / 契约 | 修复或 workaround |
-| 卡结束 | `asset({action:'settle', id, decision})` | registry / 报告 |
+| 卡结束 | `asset({action:'settle', task_id, id, decision})` 后 `asset({action:'finalize', task_id, project_root})` | 标准 `## 资产` 块 |
 | 月度审计 | `asset({action:'audit'})` 看 stale / unused / duplicate | prune 候选 |
 | 需要跨项目复用 | `settle decision='propose-l1'` | promotion bundle |
 
@@ -57,16 +58,19 @@ whenToUse: 开工前、准备写第二个同类脚本、资产运行失败、卡
 
 `asset.yaml` 必填：`id`、`layer: L3`、`purpose`、`inputs`、`outputs`、`entry`、`owner`、`reuse_expect`、`created_from`、`status: staging`。
 
-质量门槛：确定性输出、参数化（禁止硬编码 task_id / 端口）、`result.json` 结构化结果、自清理、无密钥、smoke 1–2 分钟内跑完。
+质量门槛：确定性输出、参数化（禁止硬编码 task_id / 端口）、`result.json` 至少 1 条 assertion、自清理、无密钥、smoke 1–2 分钟内跑完。脚手架默认 `status:'failed'`，没实现逻辑不会假绿。
+
+预算：每任务 `run` 最多 3 次、`create` 最多 1 次；超限返回 `BUDGET_EXCEEDED`，转 debt 或在报告说明。
 
 ## settle 四选一
 
-- `promote-l2`：项目专用，移入 `.agent/assets/packs/<name>/`，更新项目 registry；
-- `propose-l1`：跨项目通用，生成 `.agent/assets/promotions/<name>/` bundle，人等审 PR；
+- `propose-l2`（默认）：项目专用，生成 `.agent/assets/promotions/<name>/` bundle，**不写 packs / registry**，由独立资产卡落地；
+- `promote-l2`（例外）：仅当卡片范围明确允许 `.agent/assets/**`，且传 `allow_repo_write:true`；否则工具拒绝；
+- `propose-l1`：跨项目通用，生成 promotion bundle，人等审 PR；
 - `discard`：用一次就废，删除并写 reason；
-- `debt`：有价值但这次没时间，移入 `debt/` 并写 `debt.yaml`，14 天 TTL。
+- `debt`：有价值但这次没时间，移入持久 debt 区并写 `debt.yaml`，14 天 TTL。
 
-**不允许留在 staging**。卡结束由 Leader 检查：staging 为空或每条有结算记录。
+**不允许留在 staging**。卡结束必须 `asset({action:'finalize', task_id, project_root})`；pending 未清空时，所有非 `asset` 工具都会被拦。
 
 ## 失败处理
 

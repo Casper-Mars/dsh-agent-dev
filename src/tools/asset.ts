@@ -1,11 +1,12 @@
 /**
  * `asset` 工具：资产飞轮的唯一 agent 入口。
  *
- * 五个 action 共用一套 schema，工具面只 +1：
+ * 六个 action 共用一套 schema，工具面只 +1：
  * - search：按 tags 检索项目 L2 + 共享 L1/L0；
  * - create：在 staging 建 L3 脚手架；
  * - run：执行已注册资产（支持 smoke / timeout / cancel）；
- * - settle：L3 结算（promote-l2 / propose-l1 / discard / debt）；
+ * - settle：L3 结算（propose-l2 / promote-l2 / propose-l1 / discard / debt）；
+ * - finalize：清点 staging，返回标准 `## 资产` 块；
  * - audit：全量审计；带 id 时做单资产诊断。
  *
  * 只返回事实（路径、状态、错误码），不返回“下一步建议”；工作流由
@@ -23,6 +24,16 @@ import {
   runAsset,
   searchAssets,
   settleStagingAsset,
+  appendUsage,
+  assetBlock,
+  finalizeLedger,
+  markCreated,
+  markSettled,
+  markUsed,
+  readLedger,
+  recordAction,
+  updateTrust,
+  usageCounts,
   type RegistrySnapshot,
 } from '../asset/index.js'
 
@@ -34,6 +45,30 @@ export interface AssetToolConfig {
   libraryRoot?: string
   /** 项目根；缺省从 agent session header 的 cwd 取，再退回 process.cwd()。 */
   projectRoot?: string
+  /** 跨任务状态根：ledger / usage / trust / debt 的父目录。 */
+  stateRoot?: string
+  /** debt 存放根；缺省 <stateRoot>/debt。 */
+  debtRoot?: string
+  /** 单任务 run 上限，默认 3。 */
+  maxRunsPerTask?: number
+  /** 单任务 create 上限，默认 1。 */
+  maxCreatesPerTask?: number
+}
+
+const pendingByAgent = new WeakMap<object, Set<string>>()
+
+function pendingOf(agent: unknown): Set<string> | undefined {
+  return agent !== null && typeof agent === 'object' ? pendingByAgent.get(agent as object) : undefined
+}
+
+function ensurePending(agent: unknown): Set<string> | undefined {
+  if (agent === null || typeof agent !== 'object') return undefined
+  let set = pendingByAgent.get(agent as object)
+  if (set === undefined) {
+    set = new Set<string>()
+    pendingByAgent.set(agent as object, set)
+  }
+  return set
 }
 
 interface AgentLike {
@@ -84,7 +119,7 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
   return defineTool({
     name: 'asset',
     description: [
-      '资产工具：search 检索项目/共享库资产；create 在 staging 建 L3 脚手架；run 执行已注册资产；settle 结算 L3；audit 审计/诊断。',
+      '资产工具：search 检索项目/共享库资产；create 在 staging 建 L3 脚手架；run 执行已注册资产；settle 结算 L3；finalize 清点并返回 ## 资产 块；audit 审计/诊断。',
       '只返回事实（id、路径、状态、错误码），不返回下一步建议。',
       'search 按 tags 匹配（所有 tag 都要命中）；run 必须传 id + scenario，或 smoke=true；create 必须传 name/purpose/task_id。',
     ].join(' '),
@@ -92,7 +127,7 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
       action: {
         type: 'string',
         required: true,
-        enum: ['search', 'create', 'run', 'settle', 'audit'],
+        enum: ['search', 'create', 'run', 'settle', 'finalize', 'audit'],
         description: '要执行的动作。',
       },
       tags: {
@@ -110,7 +145,7 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
       },
       task_id: {
         type: 'string',
-        description: 'create 用：当前任务号，决定 staging/<task-id>/ 目录。',
+        description: 'create / run / settle / finalize / audit 用：当前任务号；ledger 与预算按它统计。',
       },
       purpose: {
         type: 'string',
@@ -153,7 +188,7 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
       },
       decision: {
         type: 'string',
-        enum: ['promote-l2', 'propose-l1', 'discard', 'debt'],
+        enum: ['promote-l2', 'propose-l2', 'propose-l1', 'discard', 'debt'],
         description: 'settle 用：结算方式。',
       },
       reason: {
@@ -167,6 +202,14 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
       project_root: {
         type: 'string',
         description: '必填：当前任务 worktree 的项目根（绝对路径）；不要传 /workspace。',
+      },
+      scenario_root: {
+        type: 'string',
+        description: 'run 用：场景根（例如 tester 的验证副本）；缺省等于 project_root。',
+      },
+      allow_repo_write: {
+        type: 'boolean',
+        description: 'settle promote-l2 用：确认会写入项目仓库；缺省 false，直接拒绝。',
       },
     },
     output: {
@@ -187,8 +230,11 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
       const libraryRoot = config.libraryRoot
       try {
         const projectRoot = projectRootOf(exec as ToolExecLike, config, args.project_root)
+        const taskId = args.task_id?.trim() ?? ''
+        const ledgerLocation = { ...(config.stateRoot === undefined ? {} : { stateRoot: config.stateRoot }), projectRoot }
         if (action === 'search') {
           const snapshot = loadSnapshot({ projectRoot, ...(libraryRoot === undefined ? {} : { libraryRoot }) })
+          const usage = usageCounts(ledgerLocation)
           const items = searchAssets(snapshot, { tags: args.tags }).map(asset => ({
             id: asset.id,
             layer: asset.layer,
@@ -196,6 +242,7 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
             version: asset.version ?? null,
             health: asset.health,
             last_verified: asset.lastVerified ?? null,
+            usage_count: usage.get(asset.id) ?? asset.usageCount ?? 0,
             tags: asset.tags ?? [],
             known_limits: asset.knownLimits ?? [],
             purpose: asset.purpose ?? null,
@@ -215,7 +262,11 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
             throw new AssetError('INVALID_MANIFEST', 'create 需要 purpose')
           }
           if (args.layer === 'L2') {
-            throw new AssetError('INVALID_MANIFEST', 'create 只支持 L3；L2 由 settle promote-l2 产生')
+            throw new AssetError('INVALID_MANIFEST', 'create 只支持 L3；L2 由 settle propose-l2 产生')
+          }
+          const ledger = readLedger(ledgerLocation, args.task_id)
+          if (ledger.actions.create >= (config.maxCreatesPerTask ?? 1)) {
+            throw new AssetError('BUDGET_EXCEEDED', `本任务 create 已达上限 ${config.maxCreatesPerTask ?? 1}`)
           }
           const created = createStagingAsset({
             projectRoot,
@@ -227,20 +278,47 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
             ...(args.owner === undefined ? {} : { owner: args.owner }),
             ...(args.reuse_expect === undefined ? {} : { reuseExpect: args.reuse_expect }),
           })
+          const name = args.name ?? args.id ?? ''
+          markCreated(ledgerLocation, args.task_id, name)
+          ensurePending(exec.agent)?.add(name)
           return { action, ok: true, data: asJson({ staging_path: created.stagingPath, files: created.files }) }
         }
 
         if (action === 'run') {
           if (args.id === undefined) throw new AssetError('INVALID_MANIFEST', 'run 需要 id')
+          if (taskId !== '') {
+            const ledger = readLedger(ledgerLocation, taskId)
+            if (ledger.actions.run >= (config.maxRunsPerTask ?? 3)) {
+              throw new AssetError('BUDGET_EXCEEDED', `本任务 run 已达上限 ${config.maxRunsPerTask ?? 3}`)
+            }
+          }
           const result = await runAsset({
             projectRoot,
             ...(libraryRoot === undefined ? {} : { libraryRoot }),
             id: args.id,
             ...(args.scenario === undefined ? {} : { scenario: args.scenario }),
+            ...(args.scenario_root === undefined ? {} : { scenarioRoot: args.scenario_root }),
             ...(args.smoke === undefined ? {} : { smoke: args.smoke }),
             ...(args.timeout_ms === undefined ? {} : { timeoutMs: args.timeout_ms }),
             signal: exec.signal,
           })
+          if (taskId !== '') {
+            recordAction(ledgerLocation, taskId, 'run')
+            appendUsage(ledgerLocation, {
+              ts: new Date().toISOString(),
+              taskId,
+              assetId: args.id,
+              status: result.status,
+              durationMs: result.durationMs,
+              source: 'library',
+            })
+            if (result.status === 'passed') markUsed(ledgerLocation, taskId, args.id)
+            const today = new Date().toISOString().slice(0, 10)
+            updateTrust(ledgerLocation, args.id, {
+              lastUsed: today,
+              ...(args.smoke === true && result.status === 'passed' ? { lastVerified: today } : {}),
+            })
+          }
           return {
             action,
             ok: result.status === 'passed',
@@ -257,6 +335,13 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
           }
         }
 
+        if (action === 'finalize') {
+          if (taskId === '') throw new AssetError('INVALID_MANIFEST', 'finalize 需要 task_id')
+          const ledger = finalizeLedger(ledgerLocation, taskId)
+          ensurePending(exec.agent)?.clear()
+          return { action, ok: true, data: asJson({ asset_block: assetBlock(ledger), ledger }) }
+        }
+
         if (action === 'settle') {
           const target = args.id ?? args.name
           if (target === undefined) throw new AssetError('INVALID_MANIFEST', 'settle 需要 id 或 name')
@@ -269,7 +354,11 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
             ...(args.owner === undefined ? {} : { owner: args.owner }),
             ...(args.reuse_expect === undefined ? {} : { reuseExpect: args.reuse_expect }),
             ...(args.force === undefined ? {} : { force: args.force }),
+            ...(args.allow_repo_write === undefined ? {} : { allowRepoWrite: args.allow_repo_write }),
+            ...(config.debtRoot === undefined ? {} : { debtRoot: config.debtRoot }),
           })
+          if (taskId !== '') markSettled(ledgerLocation, taskId, target, args.decision)
+          ensurePending(exec.agent)?.delete(target)
           return {
             action,
             ok: true,
@@ -290,7 +379,11 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
           const diagnosis = diagnoseAsset({ projectRoot, ...(libraryRoot === undefined ? {} : { libraryRoot }), id: args.id })
           return { action, ok: true, data: asJson(diagnosis) }
         }
-        const report = auditAssets({ projectRoot, ...(libraryRoot === undefined ? {} : { libraryRoot }) })
+        const report = auditAssets({
+          projectRoot,
+          ...(libraryRoot === undefined ? {} : { libraryRoot }),
+          usageCounts: usageCounts(ledgerLocation),
+        })
         return { action, ok: true, data: asJson(report) }
       } catch (error) {
         return errorResult(action, error)
@@ -302,4 +395,11 @@ export function buildAssetTool(config: AssetToolConfig = {}): ToolDefinition {
 /** Cordis 装配入口：把 `asset` 注册进当前 preset 的工具面。 */
 export function apply(ctx: Context, config: AssetToolConfig = {}): void {
   ctx.tools.register(buildAssetTool(config))
+  ctx.on('tools/pre-execute', async (exec, next) => {
+    const pending = pendingOf(exec.agent)
+    if (pending !== undefined && pending.size > 0 && exec.name !== 'asset') {
+      return { kind: 'deny', reason: `staging 未结算：${[...pending].join('、')}；先 asset finalize` }
+    }
+    return next()
+  }, { prepend: true })
 }
