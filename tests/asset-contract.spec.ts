@@ -1,0 +1,35 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { describe, expect, it } from 'vitest'
+import { buildAssetTool } from '../src/tools/asset'
+
+const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
+
+function read(relative: string): string {
+  return readFileSync(path.join(REPO_ROOT, relative), 'utf8')
+}
+
+describe('asset tool contract', () => {
+  it('is exported as a package subpath', () => {
+    const pkg = JSON.parse(read('package.json')) as { exports: Record<string, unknown> }
+    expect(pkg.exports['./tools/asset']).toBeDefined()
+  })
+
+  it('is mounted in all three dev presets', () => {
+    const patch = read('cordis.patch.yml')
+    expect(patch.match(/id: tool-asset/g)).toHaveLength(3)
+    expect(patch.match(/name: dsh-agent-dev\/tools\/asset/g)).toHaveLength(3)
+  })
+
+  it('exposes the five action protocol', () => {
+    const tool = buildAssetTool()
+    expect(tool.name).toBe('asset')
+    const parameters = tool.parameters as { properties?: Record<string, { enum?: unknown[] }> }
+    const action = parameters.properties?.action as { enum?: unknown[] }
+    expect(action.enum).toEqual(['search', 'create', 'run', 'settle', 'audit'])
+    expect(tool.description).toContain('search')
+    expect(tool.description).toContain('settle')
+    expect(tool.description).toContain('不返回下一步建议')
+  })
+})

@@ -38,7 +38,11 @@
       "default": "./dist-server/assets-tester.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./tools/asset": {
+      "types": "./dist-server/types/tools/asset.d.ts",
+      "default": "./dist-server/tools/asset.js"
+    }
   },
   "files": [
     "dist-server/**/*.js",

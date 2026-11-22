@@ -36,6 +36,11 @@
         plugins:
           - id: dev-assets-leader
             name: dsh-agent-dev/assets/leader
+          # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
+          - id: tool-asset
+            name: dsh-agent-dev/tools/asset
+            config:
+              libraryRoot: /opt/agent-assets
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-bash
@@ -77,6 +82,11 @@
         plugins:
           - id: dev-assets-developer
             name: dsh-agent-dev/assets/developer
+          # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
+          - id: tool-asset
+            name: dsh-agent-dev/tools/asset
+            config:
+              libraryRoot: /opt/agent-assets
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
@@ -142,6 +152,11 @@
         plugins:
           - id: dev-assets-tester
             name: dsh-agent-dev/assets/tester
+          # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
+          - id: tool-asset
+            name: dsh-agent-dev/tools/asset
+            config:
+              libraryRoot: /opt/agent-assets
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
