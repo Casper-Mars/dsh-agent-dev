@@ -61,6 +61,14 @@
             name: '@deepseek-ai/dsh-tool-todo'
             config:
               allowParallelInProgress: false
+          # 浏览器工具：Leader 自己「看一眼」用（导航 / 切视口 / 截图 + read_image）。
+          # 实测教训：没有这层时，Leader 会为了给 UI 卡取证手搓 browserless 脚本、
+          # Caddy 反代与预览容器（一个项目 22 次调用、2 轮失败重试）。
+          # 但只限 triage：「肉眼是否可见」；完整取证仍由 Developer / Tester 做，Leader 不搭预览链路。
+          - id: browser-leader
+            name: dsh-browser-native
+            config:
+              screenshotDir: .shots
           # 【子 agent 兜底路径】与 agent-preset-registry.default（主会话）无关：
           # dsh-tool-subagent 在未传 agent_preset 时直接用这里的 agentPreset
           # （0.2.1-rc.2 lib/index.js:252）。这里必须是只读的 dev-tester，

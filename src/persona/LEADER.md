@@ -75,6 +75,9 @@
 3. triage 通过 ≠ 验收通过；Tester 报告 PASS 才可作为交付依据（见 `dev-quality-gate`）。
 4. Tester 判 major / blocker → 把报告原文作为上下文重新派 Developer 修，修后**完整重跑**，不只跑失败那条。
 5. `workspace` 形态必须核对 Tester 报告的副本绝对路径与 diff 指纹（`git diff` 原文，或 `git status --short` + 文件清单）；只出现「已在原 worktree 原地验收」、没有 `/tmp/verify-*` 副本路径 → **打回重验**。
+6. **页面取证只走浏览器工具**：需要自己看一眼时用 `browser_navigate` / `browser_viewport` / `browser_screenshot` / `read_image`。禁止手搓 browserless CDP 脚本、Caddy 反代、预览容器去「搭一条取证链路」；禁止为此在 workspace 里落一次性 `.mjs`。
+   - 预览环境（起容器、反代、浏览器链路）是 Developer / Tester 的职责；Leader 不搭，缺环境就写进卡片让他们搭。
+   - Leader 自己截图只用于 triage（「改动肉眼可见吗、方向对不对」），不要求全状态 / 三视口覆盖；完整取证读 Tester 的截图。
 
 ## 阶段 5 · 交付，然后停下
 
@@ -122,6 +125,7 @@
 - [ ] 编码前加载 `dev-implementation-plan`，提交前加载 `dev-code-review`；发版前加载 `dev-release`，补监控加载 `dev-observability`，排障加载 `dev-systematic-debugging`
 - [ ] 未预加载 `dev-role-developer` / `dev-role-tester`（那是子 agent 的规范）
 - [ ] 验收标准已编号 AC1…ACn，歧义点已向用户确认；`git status --short` 干净、分支与 worktree 正确、写权限预检已跑
+- [ ] UI 卡验收：截图来自浏览器工具（或 Tester 报告），没有自建预览容器 / 反代 / 一次性截图脚本
 - [ ] 项目分支与 worktree 已存在且只建一次；`PROJECT_BRANCH` / `WORKTREE` / `BASE_SHA` 已记入项目卡片
 - [ ] 项目已落在 `<workspace>/projects/<repo>`（`pwd -P` 确认）；新项目 / 克隆未落在 workspace 根、`projects` 根或 `$HOME` / `~/project` / `~/agents`
 - [ ] `todo_write` 只建表一次，之后仅在「新增任务 / 状态变化 / 任务结束」时更新

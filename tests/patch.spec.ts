@@ -112,6 +112,15 @@ describe('主会话工具面扩展', () => {
     expect(ids).not.toContain('workflow')
   })
 
+  it('dev-leader 挂浏览器工具：页面取证走 browser_*，不用手搓脚本', () => {
+    const config = byId('preset-dev-leader').config as {
+      plugins: Array<{ id: string; name: string; config?: Record<string, unknown> }>
+    }
+    const browser = config.plugins.find((plugin) => plugin.name === 'dsh-browser-native')
+    expect(browser, 'dev-leader 缺少 dsh-browser-native').toBeDefined()
+    expect(browser?.config).toEqual({ screenshotDir: '.shots' })
+  })
+
   it('子 agent preset 不挂 schedule / plan-mode / workflow（编排留在 Leader）', () => {
     for (const id of ['preset-dev-developer', 'preset-dev-tester']) {
       const config = byId(id).config as { plugins: Array<{ id: string }> }
