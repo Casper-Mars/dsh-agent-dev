@@ -334,17 +334,52 @@ docker compose -p "dsh-${REPO}" -f "$WS/.agent-env/$REPO/compose.yml" down -v
   `dsh.repo=<repo>` label；
 - **禁止**用裸 `docker run` 起「临时凑一下」的服务——那就是这次环境失控的起点。
 
-## 8. 记账（每次 up / reuse / redefined / reclaim 各一行）
+## 8. 记账（每次 up / reuse / redefined / audit / retain / reclaim 各一行）
+
+账本是**一行一条 JSON** 的追加型文件。schema 以历史 66 行为基线（不要另起字段名，历史行不重写）：
+
+| 键 | 必填 | 说明 |
+|----|------|------|
+| `ts` | 是 | UTC ISO8601，`date -u +%FT%TZ` |
+| `repo` | 是 | 仓库名 |
+| `event` | 是 | `up` / `reuse` / `redefined` / `audit` / `retain` / `reclaim` |
+| `name` | 是 | 容器名（devcontainer 后端填 containerId 前 12 位） |
+| `by` | 是 | 写入者：任务号 或 `<项目>-closeout` |
+| `note` | 是 | 一句话：做了什么 / 为什么保留；说不清就贴命令 |
+| `id` | 否 | 容器 id 前 12 位；不适用写 `n/a` |
+| `image` | 否 | 镜像；不适用写 `n/a` |
+
+写法：**node 单行**（agent 容器里有 node，没有 jq / python3；也不要把 JSON 拼进 heredoc，note 一带引号就会坏）。
 
 ```bash
-cat >> "$WS/.agent-env/$REPO/ledger.jsonl" <<EOF
-{"ts":"$(date -u +%FT%TZ)","repo":"${REPO}","event":"up","name":"dsh-${REPO}-dev","id":"$(docker inspect -f '{{.Id}}' dsh-${REPO}-dev | cut -c1-12)","image":"golang:1.26-alpine","by":"${WORK_ID}"}
-EOF
+node -e 'const [ts,repo,event,name,id,image,by,note]=process.argv.slice(1);
+process.stdout.write(JSON.stringify({ts,repo,event,name,id,image,by,note})+"\n")' \
+  "$(date -u +%FT%TZ)" "$REPO" up "dsh-$REPO-dev" \
+  "$(docker inspect -f '{{.Id}}' "dsh-$REPO-dev" 2>/dev/null | cut -c1-12)" \
+  "golang:1.26-alpine" "$WORK_ID" "按 env.md 起容器" \
+  >> "$WS/.agent-env/$REPO/ledger.jsonl"
 ```
 
-`event` 取值：`up` / `reuse` / `redefined`（改配置重建）/ `reclaim` / `retain`（显式保留，必须带
-`note` 说明理由）。devcontainer 后端把 `name` 换成它的 `containerId` 前 12 位，并在 `image` 记
-features 组合的镜像。
+校验（交付前跑一次，退出码非 0 即账本不合格）：
+
+```bash
+node -e '
+const fs=require("fs");const p=process.argv[1];
+const need=["ts","repo","event","name","by","note"];
+const evs=new Set(["up","reuse","redefined","audit","retain","reclaim"]);
+let bad=0,n=0;
+for(const [i,l] of fs.readFileSync(p,"utf8").split("\n").entries()){
+  if(!l.trim()) continue; n++;
+  try{const d=JSON.parse(l);
+    const miss=need.filter(k=>!d[k]);
+    if(miss.length||!evs.has(d.event)){bad++;console.log(`line ${i+1}: miss=${miss.join(",")||"-"} event=${d.event}`)}}
+  catch(e){bad++;console.log(`line ${i+1}: not json`)}}
+console.log(bad?`FAIL ${bad}/${n}`:`OK ${n} rows`);process.exit(bad?1:0)' \
+  "$WS/.agent-env/$REPO/ledger.jsonl"
+```
+
+规则：只追加不改写历史行；同一动作只记一行；`retain` 必须写 `note` 说明保留理由；
+不用 `write` 临时文件再 `cat >>`（三步并一步，且临时文件易残留）。
 
 ## 9. 交付前核销（固定两步，缺一步不算交付完成）
 

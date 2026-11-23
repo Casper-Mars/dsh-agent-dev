@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-dev",
-  "version": "0.9.13",
+  "version": "0.9.14",
   "type": "module",
   "description": "开发领域包（dsh）：原生单包提供 Leader 人设、16 个只读领域 Skill 与 3 个 agent preset",
   "keywords": [
