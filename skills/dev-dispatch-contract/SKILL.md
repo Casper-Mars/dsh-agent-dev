@@ -24,7 +24,8 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
 | 编码、改文件、写测试、改配置 | `dev-developer` | 所有写操作都走这里 |
 | 独立验证、验收重跑、对抗性测试 | `dev-tester` | 编码任务交付前必过一次 |
 | 文档 / 脚本类仓库改动 | `dev-developer` | 与代码同等要求 |
-| 需求拆解、进度汇报、`git commit` / `push`、Wiki 维护 | 不派发 | Leader 元操作，自己做 |
+| 需求拆解、进度汇报、Wiki 维护 | 不派发 | Leader 元操作，自己做 |
+| 任务分支 / worktree 创建、`git commit` / `push` 任务分支、开任务 PR | 不单独派发 | 属 Developer 交付动作，写进卡片（实测：Leader 代做占 15 次调用易出错） |
 
 - `subagent` 的 `agent_preset` 枚举只有 `dev-developer` / `dev-tester` 两项，`dev-leader` 不可作为派发目标。
 - `maxDepth: 1`：子 agent 无法再向下派发。需要多人协作时，由 Leader 串行拆成多次派发，禁止让子 agent「自己找人」。
@@ -44,17 +45,19 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
 2. 领域 / 技术栈：node-ts（Node 22 + TypeScript 5 + pnpm 11）
 3. 背景：为什么做；关联文档链接 / Issue / 上一轮结论（写链接，不写「见上」）
 4. 目标（一句话交付物）：把 3 个 SKILL.md 从骨架补成可执行的规则（触发条件 + 流程/细则，按类型补禁止项与检查清单）
-5. 路径与分支（沿用项目分支，本卡不新建）：
+5. 路径与分支（项目分支沿用；任务分支与 worktree 由 Developer 自建）：
    - 项目根：<workspace>/projects/<repo>（绝对路径；<workspace> = `pwd -P`，不是 `DSH_HOME`；
      既有本地仓库按它实际路径写，并注明「原地使用，不迁移、不复制」）
-   - worktree：<workspace>/projects/.worktrees/<repo>-<type>-<项目号>-<描述>（项目立项时已建好，本卡复用，勿新建）
-   - 分支：feat/proj-1a2b3c4d-xxx（项目分支，勿新建、勿切换）
-   - 本任务基线：<上一任务的 TASK_COMMIT>（首个任务为项目 BASE_SHA）
+   - worktree：<workspace>/projects/.worktrees/<repo>-<任务号>（**本卡自建**，已存在则复用；路径固定，不允许改名）
+   - 分支：`task/<任务号>`（从 `origin/feature/<项目号>` 最新提交切出）；项目分支 `feature/<项目号>` 只读引用
+   - 本任务基线：`origin/feature/<项目号>` 的最新 commit（写死 hash，不写「最新」）
+   - 交付前同步：`git merge origin/feature/<项目号>`；冲突在本任务分支内解决
 6. 行为清单（可观察，UI 任务默认）：
    - [ ] `<路由 / 入口>`：`<操作>` → `<看到的可观察结果>`
    - [ ] `<路由 / 入口>`：`<操作>` → `<看到的可观察结果>`
    （逻辑 / 数据 / 接口类任务写成可判定条目：`<命令>` + 预期退出码；两种形态二选一，不要混用）
-7. 约束：只改 skills/<name>/SKILL.md；禁止 push；禁止改 src/ tests/；frontmatter 只允许单行 key: value
+7. 约束：只改 skills/<name>/SKILL.md；**可** push `task/<任务号>` 并开任务 PR（base=项目分支）；
+   禁止 push 项目分支/默认分支、禁止 `gh pr merge`、禁止改他人 worktree；禁止改 src/ tests/；frontmatter 只允许单行 key: value
 8. 相关关键词与 Skill（必填门禁）：
    - 子 agent 开工第一件事：`skill` 加载 <角色 Skill 清单>，然后 `read references/<stack>.md`
      并回报 `STACK=… REF=… DETECT=…`
@@ -62,8 +65,8 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
    - 派 Tester：`dev-role-tester` + `dev-test-strategy`
    - 关键词：Wiki 检索「Skill 写作规范 / 派发契约」
    - 资产：`asset` 工具 `search` 命中的 id（无则写「无」）；新场景写预期复用次数
-9. 交付格式：项目分支 + 本任务 commit hash + diff 范围 <基线>..<commit>；
-   证据按 §2.1 分级由 Developer 选（默认 L0/L1；要求 L2 时在本项写理由）；未覆盖项与风险（不 push、不开 PR）
+9. 交付格式：项目分支 + 本任务 commit hash + **任务 PR 链接（base=项目分支）** + diff 范围 <基线>..<commit>；
+   证据按 §2.1 分级由 Developer 选（默认 L0/L1；要求 L2 时在本项写理由）；未覆盖项与风险
 10. 交付形态与环境限制：`delivery_mode: commit|workspace`；不可写路径（如主仓库 `.git/`）、
     无审批通道、网络/凭据限制、必须降级的命令；环境由 Leader 在阶段 1.5 备好，卡片必须写
     容器名 / `WF` / 执行命令形态；子 agent 不得自行 `docker run` / `devcontainer up`，
@@ -78,7 +81,7 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
 
 - 第 6 项：UI 任务写「路由 + 操作 → 看到什么」，一次观察即可确认；非 UI 任务写「命令 + 预期退出码」。
   两种形态都禁止「体验良好」「符合规范」这类不可观察表述，也禁止要求「每条 AC 一条证明脚本」。
-- 第 7 项必须显式写「禁止 push」，否则子 agent 可能自行推送。
+- 第 7 项必须显式写授权边界：**可** push `task/<任务号>`、**可**开任务 PR（base=项目分支）；禁止 push 项目分支/默认分支、禁止合并、禁止改他人 worktree。只写「禁止 push」会让交付停在本地（旧口径，已废）。
 - 第 8 项是**派发门禁**，不是备注：必须写出角色 Skill 清单与路由回报要求，原样成句：
   「子 agent 开工第一件事：`skill` 加载 <清单>，然后 `read references/<stack>.md` 并回报
   `STACK=… REF=… DETECT=…`」。
@@ -87,8 +90,9 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
 - UI 任务缺第 11 / 12 项（`design_ref`、状态清单）= 卡片不合格，禁止派发；验收按 `dev-ui-review` 执行。
 - 第 10 项必须显式写 `delivery_mode`；`workspace` 时还要写清「Tester 如何取得交付物」（复制路径/忽略目录）。
 - 路径写绝对路径；相对路径在子 agent 的 cwd 里可能解析不到。
-- 第 5 项必须区分「项目级」与「任务级」：分支与 worktree 是项目立项时建的，本卡只引用；
-  卡片里出现「新建分支 / 新建 worktree / 合并到 main」= 卡片不合格，会把开发流程重新拆碎。
+- 第 5 项必须区分「项目级」与「任务级」：项目分支是立项时建的，**任务分支与 worktree 是本卡由 Developer 自建的**；
+  路径、分支名、基线 hash 三样必须写死，否则不同卡会撞在同一目录。
+  卡片里出现「合并到 main」「自行决定分支名」= 卡片不合格。
 - 项目落位硬规则（第 5 项）：新项目 / 克隆项目一律落 `<workspace>/projects/<repo>`，`<workspace>` 用 `pwd -P` 取；
   禁止直接落在 workspace 根、`<workspace>/projects` 根、`$HOME`、`~/project`、`~/agents`。
   卡片给的外部路径要改写成 `projects/` 下并说明；用户坚持原路径才停下确认。既有本地仓库原地使用，不迁移、不复制。
@@ -178,7 +182,7 @@ subagent({
 - 禁止派发后 `sleep` / 轮询 / 反复查状态；也禁止中途改同一批文件。
 - 禁止跨卡复用同角色 child：新卡必须新建；只有同一张卡的返工 / 追问才 `send_message`。
 - 禁止并行起两个同角色 child（同一时间同一角色只跑一个任务）。
-- 禁止让子 agent 自行决定验收标准、自行放宽断言、自行 push。
+- 禁止让子 agent 自行决定验收标准、自行放宽断言、自行 push 项目分支/默认分支、自行合并 PR。
 - 禁止在子 agent 回报「完成」后不做 triage 就转交 Tester 或直接交付。
 - 禁止卡片第 8 项写「无 Skill」/留空；编码与测试类任务必须写角色 Skill 清单 + 路由声明要求。
 - 禁止要求「每条 AC 一条脚本 / 一个断言」——那是在逼子 agent 先造测量装置。
@@ -193,7 +197,7 @@ subagent({
 - 不拆解需求：卡片给什么做什么，范围外发现的问题写进「未覆盖项」，不顺手改。
 - 不调度：不派发其他 agent，需要协作时回报 Leader。
 - 不改验收标准：AC 有异议先回报，不自行下调。
-- 不 push、不改主线分支、不改他人 worktree。
+- 不 push 项目分支 / 默认分支、不合并 PR、不改他人 worktree；只 push 自己的 `task/<任务号>`。
 - 不夹带：格式化全仓库、升级依赖、重命名无关文件一律禁止。
 
 ### Tester 边界（写进测试卡片）
@@ -243,11 +247,11 @@ subagent({
 - [ ] 已先调用 `asset` 工具 `search`；命中的 id 已写进第 8 项，无则写「无」
 - [ ] 第 6 项是行为清单（路由 + 操作 → 看到什么）或可判定条目（命令 + 退出码），二选一不混用
 - [ ] 没有要求「每条 AC 一条脚本」、没有点名验证手段、没有要求把截图/断言脚本写进仓库
-- [ ] 项目路径与 worktree 真实存在（`ls` 过）
+- [ ] 项目路径与项目分支真实存在（`ls` / `git ls-remote` 过）；任务 worktree 由本卡自建，路径不预先要求存在
 - [ ] 第 5 项项目根为 `<workspace>/projects/<repo>` 绝对路径（既有仓库按实际路径并注明原地使用，不迁移不复制）
-- [ ] 项目分支与 worktree 已存在（立项时建的），本任务基线 commit 写进卡片；本卡不要求新建分支/worktree
-- [ ] 约束写明只读目录、禁止 push、禁止改动的模块
-- [ ] 交付格式写明项目分支 + 任务 commit + diff 范围 + 命令退出码 + 未覆盖项
+- [ ] 第 5 项写死了任务分支名、worktree 路径、基线 hash 三样；项目分支只读引用
+- [ ] 约束写明授权边界：可 push 任务分支 / 可开任务 PR（base=项目分支）；禁止 push 项目分支与默认分支、禁止合并、禁止改他人 worktree
+- [ ] 交付格式写明项目分支 + 任务 commit + **任务 PR 链接** + 命令退出码 + 未覆盖项
 - [ ] 第 8 项已写角色 Skill + `dev-test-strategy` 清单，且带 `STACK=… REF=… DETECT=…` 路由回报要求
       （未写 = 卡片不合格，不派发）
 - [ ] 第 10 项 `delivery_mode` 已确认（`workspace` 时写明 Tester 的取物方式）
@@ -258,6 +262,7 @@ subagent({
 
 - [ ] 行为清单 / 可判定条目逐条对照证据（UI 看截图与实际观察，L2 看退出码），而不是看「已完成」三个字
 - [ ] `git status` / `git diff --stat` 已看，改动在允许范围内
+- [ ] 交付物含任务 PR 链接且 base 是项目分支；只给本地 commit 不算交付（除非 `GIT_WRITE_BLOCKED` 已登记）
 - [ ] 命令与退出码齐全，关键一条已复现
 - [ ] 回报里有 `STACK=… REF=… DETECT=…` 与复制自 ref 的命令；只有「我看了 Skill」不算
 - [ ] 未覆盖项与风险已列出，没有「应该没问题」

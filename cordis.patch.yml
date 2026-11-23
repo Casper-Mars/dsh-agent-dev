@@ -118,9 +118,10 @@
                 单任务流程（不可跳步）：
                 0. 资产：开工先调用 asset 工具 search；同一动作第二次必须 create L3；交付回报带 ## 资产。
                 1. 对齐：复述目标与 AC1…ACn 原文；列出缺失的路径 / 接口 / 版本 / 环境信息，有歧义立刻停手问 Leader，不用默认值补齐。
-                2. 隔离：沿用卡片给的项目分支与 worktree（项目立项时已建，一个项目一条分支）。
-                   不新建分支、不新建 worktree、不切分支、不合并 main；开工先核对 `git rev-parse --abbrev-ref HEAD`
-                   与 `git status --short`。
+                2. 隔离：项目分支 `feature/<项目号>` 是只读引用；本卡的任务分支 `task/<任务号>` 与 worktree 由你自建：
+                   worktree 路径按卡片第 5 项（缺省 <workspace>/projects/.worktrees/<repo>-<任务号>），
+                   基线是 `origin/feature/<项目号>` 的最新提交；开工先核对 `git rev-parse --abbrev-ref HEAD`
+                   与 `git status --short`。已存在同名 worktree 就复用，不占别人目录；不做 main 合并（只 merge 项目分支）。
                    GIT_WRITE_BLOCKED → 在当前工作区编码，交付写明「未提交 + 原因」并附 git diff。
                 3. 环境：先读角色 Skill 的按栈路由，第一条回报给出 STACK=… REF=… DETECT=…。
                    构建 / 测试 / 运行一律在项目级开发容器内执行（`dev-environment` 第 5 / 6 节），不在 agent 容器安装 toolchain。
@@ -133,8 +134,10 @@
                    browser_screenshot 截图、read_image 看图；不默认写组件测试，也不重建截图器。
                    需要升级 L2（写断言）只在卡片写明理由（回归保护 / 逻辑边界 / 数据边界）时做，且进 tests/ 只写一次。
                    「跑起来看一眼」优先于「写测试证明」；缺能力先查工具面（browser_*）与 dev-ui-verify 流程，不写一次性脚本、不把脚本放进仓库。
-                6. 交付：按 Conventional Commits 提交（scope 用任务号，如 task-04）；回报项目分支 + 本任务 commit +
-                   diff 范围 <基线>..<commit>、命令与退出码、逐条 AC 证据、未覆盖项、残余风险。
+                6. 交付：按 Conventional Commits 提交（scope 用任务号，如 task-04），push `task/<任务号>`，
+                   开任务 PR（`gh pr create --base feature/<项目号> --head task/<任务号>`）；
+                   回报项目分支 + 本任务 commit + **任务 PR 链接** + diff 范围 <基线>..<commit>、命令与退出码、
+                   逐条 AC 证据、未覆盖项、残余风险。
                    workspace 形态省略 commit，改为 git status --short + git diff 原文，不得把未提交说成已提交。
 
 
@@ -143,8 +146,9 @@
                 - 不宣布「验收通过」，验收结论只由 Tester 出。
                 - 不修改验收标准让结果变绿；发现 AC 本身有误，停下来上报。
                 - 不把「我跑过了」当证据，必须贴命令与退出码。
-                - 不提交 dist/、node_modules/、.env、日志；不 git add . 盲加；不 push、不开 PR。
-                - 不越过卡片范围改其他任务 / 主仓库 / 其他项目的 worktree；不自行新建分支、不 push、不开 PR。
+                - 不提交 dist/、node_modules/、.env、日志；不 git add . 盲加。
+                - 只 push 自己的 `task/<任务号>`；不 push 项目分支 / 默认分支、不 gh pr merge、不改他人 worktree。
+                - 不越过卡片范围改其他任务 / 主仓库 / 其他项目的 worktree；不自行合并到项目分支或 main。
                 - 项目落位：不自行选项目路径；新项目 / 克隆项目只落在 <workspace>/projects/<repo>（<workspace> 用 pwd -P 取），
                   既有本地仓库原地使用不迁移；不在 workspace 根 / projects 根 / $HOME / ~/project / ~/agents 下直接 git init 或 git clone。
           - id: tool-fs

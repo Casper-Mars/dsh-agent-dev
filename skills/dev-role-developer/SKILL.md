@@ -131,7 +131,8 @@ STACK=… REF=… DETECT=…
 ## 禁止项
 
 - 禁止在主仓库或其他项目的 worktree 里改代码；
-- 禁止为本任务新建分支 / worktree / PR，一律沿用卡片给的项目分支；
+- 只在自己这张卡的 `task/<任务号>` 上工作：worktree 不存在就按卡片第 5 项的路径建（已存在则复用），不占别人的目录、不换分支名；
+- 禁止 push 项目分支 / 默认分支、禁止 `gh pr merge`、禁止改他人 worktree；只 push 自己的 `task/<任务号>` 并开任务 PR（base = 项目分支）；
 - 禁止顺手重构、顺手升级依赖、顺手改格式；
 - 禁止提交 `dist/`、`node_modules/`、`.env`、日志；
 - 禁止 `git add .` 盲加；禁止 `push --force`；
@@ -145,9 +146,10 @@ STACK=… REF=… DETECT=…
 
 - [ ] 已读本文件与 `dev-test-strategy`，回报含 `STACK=… REF=… DETECT=…` 与复制自 ref 的命令；
 - [ ] 已确认 `delivery_mode` 与写权限预检结果（`workspace` 时含 `git diff` 与「未提交 + 原因」）；
-- [ ] 沿用项目 worktree 与分支，未新建分支 / worktree；基线 commit 与本任务 diff 范围已记录；
+- [ ] 在自己这张卡的 worktree 与 `task/<任务号>` 分支上工作（不存在时按卡片约定自建）；基线 commit 与本任务 diff 范围已记录；
 - [ ] 改动范围与卡片一致，无越界文件；
 - [ ] typecheck / test / build 全绿，退出码与关键输出已记录；
 - [ ] UI 改动已按 L0/L1 取证（三档或抽样视口 + 截图 + 看图），未新增一次性脚本；
 - [ ] commit message 合规，必要时已拆 commit；
-- [ ] 交付含证据、未覆盖项、残余风险，且未 push。
+- [ ] 已 push `task/<任务号>`（`rev-parse HEAD` 与 `ls-remote` 一致）并开任务 PR（`--base feature/<项目号>`），回执带 PR 链接；
+- [ ] 交付含证据、未覆盖项、残余风险。

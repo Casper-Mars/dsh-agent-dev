@@ -8,6 +8,16 @@ whenToUse: 项目立项建集成分支、dev 卡开工建任务 worktree、任�
 
 目标：**项目一条集成分支，任务一条任务分支，一任务一 worktree**。
 
+| 对象 | 谁做 | 说明 |
+|------|------|------|
+| 项目集成分支 `feature/<project_id>` | **Leader**（立项一次） | 只建、只引用，不在上面直接提交 |
+| 任务分支 `task/<任务号>` + 任务 worktree | **Developer**（卡内） | 卡片的第 5 项写死路径/分支名/基线 |
+| 任务 commit / push / 任务 PR | **Developer** | 交付 = push 成功 + PR 链接 |
+| 审阅 PR / 回收 worktree | **Leader** | 不代建、不代推、不自行合并 |
+| 收尾 PR `feature → main` | **Leader**（全卡 PASS 后） | 合并需用户/CTO 确认 |
+
+旧口径（Leader 代建 worktree、代 push、代开 PR）已废：一个 5 卡项目实测占 Leader 15 次调用，且出现手抄标题错字。
+
 | 分支 | 命名 | 作用 |
 |------|------|------|
 | 项目集成分支 | `feature/<project_id>` | 项目的收口分支，所有任务提交最终汇入这里 |
@@ -85,7 +95,7 @@ git ls-remote --heads origin "feature/<project_id>" | grep -q . \
 
 禁止：`dev`、`test`、`tmp`、`my-branch`、中文分支名、带空格、带大写；禁止给任务分支加 type 前缀。
 
-## 三、任务 worktree：一张卡一个
+## 三、任务 worktree：一张卡一个（Developer 自建）
 
 ```bash
 git -C "$ws/projects/<repo>" fetch origin --prune
@@ -97,7 +107,8 @@ git -C "$ws/projects/<repo>" worktree add \
 要点：
 
 - **基线必须是 `origin/feature/<project_id>` 的最新远程提交**，不是默认分支，也不是上一张卡的本地 HEAD。
-- 一张卡一个目录，不复用上一张卡的 worktree；上一张已合并就 `git worktree remove` 掉，未合并则保留供 review。
+- 一张卡一个目录，不复用上一张卡的 worktree；上一张已合入就由 Leader 在收尾时 `git worktree remove`，未合入则保留供 review。
+- 已存在同名 worktree：先 `git worktree list` 确认归属，属于本卡就复用，不属于本卡就换名并向 Leader 报冲突，不覆盖别人的目录。
 - 路径固定 `<workspace>/projects/.worktrees/<repo>-<任务号>`；`<workspace>` 是 `pwd -P` 的真实 cwd，不是 `DSH_HOME`。
 - 例外：既有本地仓库不在 `projects/` 下时，worktree 放在该仓库同一 workspace 内的
   `<该仓库父目录>/.worktrees/<repo>-<任务号>`，并在卡片写明路径与理由；不得把新项目落到 workspace 根。

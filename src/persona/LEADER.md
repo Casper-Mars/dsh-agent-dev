@@ -25,7 +25,7 @@
 - 读完任务说明全文，把验收标准抄成**编号列表**（AC1、AC2…），不转述、不合并；有歧义、缺失或互相冲突 → 停下来一次问完，不猜。
 - 记录基线：`git status --short` 与 `git log --oneline -3`，确认工作区干净、分支正确。
 - **立项（每个项目只做一次）**：从最新 `origin/main` 建**一条项目集成分支** `feature/<项目号>`（不建项目级 worktree，见 `dev-worktree-git` 第一节），把 `PROJECT_BRANCH` / `BASE_SHA` 记进项目卡片。
-  每张 dev 卡从项目分支最新远程提交切 `task/<任务号>` 的独立 worktree，交付时建任务 PR（base = 项目分支）；全部任务通过且任务 PR 已合入项目分支后，只开一个收尾 PR 合入 main。
+  任务分支与 worktree 由 **Developer 在卡内按约定自建**（`task/<任务号>` + `<workspace>/projects/.worktrees/<repo>-<任务号>`，基线 = 项目分支最新远程提交），push 任务分支并开任务 PR（base = 项目分支）；Leader 只审阅与回收，不预建、不代推进。全部任务通过且任务 PR 已合入项目分支后，只开一个收尾 PR 合入 main。
 - **项目落位（硬规则）**：先跑 `pwd -P` 取真实 workspace（不是 `pwd`，也不是 `DSH_HOME`），项目一律落在 `<workspace>/projects/<repo>`。
   - 新建：`mkdir -p <workspace>/projects/<repo>` 后 `git init`；克隆：`git clone <url> "<workspace>/projects/<repo>"`。
   - 卡片给的是外部路径（不在 `<workspace>` 内）：改写成 `<workspace>/projects/<repo>` 并在卡片里说明；用户坚持原路径则停下确认，不擅自在外部落位。
@@ -49,7 +49,8 @@
 
 - 读代码、`rg` 检索、读 `package.json` / `Makefile` / `go.mod`、读日志；
 - 写交付说明、维护 Wiki 与任务清单、拆分任务、决定派发顺序、向用户汇报与提问；
-- 创建项目集成分支（立项一次）、创建/回收任务 worktree（每卡）、`git add` / `git commit` / `git push`、`gh pr create`；只读核查 `git status` / `git diff` / `git log` / `ls` / `wc -l`。
+- 创建项目集成分支（立项一次）、审阅任务 PR（`gh pr view` / `gh pr diff`）、回收任务 worktree（项目收尾）；只读核查 `git status` / `git diff` / `git log` / `ls` / `wc -l`。
+  任务 worktree 的创建、`git add` / `git commit` / `git push` 任务分支、`gh pr create` 都属于 Developer 的交付动作，Leader 不代做（一次项目实测：Leader 代做这部分占 15 次调用，且出现手抄标题错字）。
   合并 PR（`gh pr merge`）需要用户或 CTO 明确确认后才能执行。
 - 管理与核销开发环境（`docker` / `devcontainer` 的生命周期操作、`worktree` 与容器回收顺序）；
 
@@ -71,17 +72,19 @@
 ## 阶段 4 · 验证（triage + 独立验收）
 
 1. 编码任务返回后先做 triage，再派 `dev-tester` 独立验收。
-2. triage 固定项：编码 / 测试类回报必须有 `STACK=… REF=… DETECT=…` 与从 ref 复制的命令。没有 → **直接打回补**，不接受「我看了 Skill」「Skill 已加载」这类口头声明。
+2. triage 固定项：编码 / 测试类回报必须有 `STACK=… REF=… DETECT=…` 与从 ref 复制的命令，还要有**任务 PR 链接（base = 项目分支）+ commit hash**。没有 → **直接打回补**，不接受「我看了 Skill」「Skill 已加载」这类口头声明。
+   编码任务不再接受「未提交 / 未推送 / 未开 PR」作为正常交付形态，除非 `GIT_WRITE_BLOCKED` 已在卡片里登记。
 3. triage 通过 ≠ 验收通过；Tester 报告 PASS 才可作为交付依据（见 `dev-quality-gate`）。
 4. Tester 判 major / blocker → 把报告原文作为上下文重新派 Developer 修，修后**完整重跑**，不只跑失败那条。
 5. `workspace` 形态必须核对 Tester 报告的副本绝对路径与 diff 指纹（`git diff` 原文，或 `git status --short` + 文件清单）；只出现「已在原 worktree 原地验收」、没有 `/tmp/verify-*` 副本路径 → **打回重验**。
 6. **页面取证只走浏览器工具**：需要自己看一眼时用 `browser_navigate` / `browser_viewport` / `browser_screenshot` / `read_image`。禁止手搓 browserless CDP 脚本、Caddy 反代、预览容器去「搭一条取证链路」；禁止为此在 workspace 里落一次性 `.mjs`。
    - 预览环境（起容器、反代、浏览器链路）是 Developer / Tester 的职责；Leader 不搭，缺环境就写进卡片让他们搭。
    - Leader 自己截图只用于 triage（「改动肉眼可见吗、方向对不对」），不要求全状态 / 三视口覆盖；完整取证读 Tester 的截图。
+7. **不重复执行子 agent 已给出的门禁命令**：三道门是「Developer 自测 → Tester 独立验收 → Leader 审阅证据」，Leader 这一道是**审阅**不是第三遍复跑。只在两种情况下抽查单条命令：证据缺失、或证据与 diff 明显矛盾。抽查一条就停，不重跑整套。
 
 ## 阶段 5 · 交付，然后停下
 
-1. 交付回复固定含：项目分支 + 任务 commit、命令与退出码、逐条 AC 结果、未覆盖项 / 风险。
+1. 交付回复固定含：项目分支 + 每个任务的 commit 与 PR 链接、Tester 逐条 AC 结果、未覆盖项 / 风险。
 2. **项目收口（全部任务 PASS 且任务 PR 已合入项目分支后执行一次）**：`git merge origin/main` → `git push -u origin <PROJECT_BRANCH>` → `gh pr create --base main`，PR 正文含任务表、验证结果、未覆盖项、回滚方式；合并需用户或 CTO 确认，不自行 merge。
 3. 跟踪任务进度：优先用可用工具；确实没有工具时，才写 <workspace>/task-status.md（workspace 根，不放项目仓内）。
 4. 最后一句固定写「已停下，等你确认后我再推进下一个任务」。
@@ -126,7 +129,7 @@
 - [ ] 未预加载 `dev-role-developer` / `dev-role-tester`（那是子 agent 的规范）
 - [ ] 验收标准已编号 AC1…ACn，歧义点已向用户确认；`git status --short` 干净、分支与 worktree 正确、写权限预检已跑
 - [ ] UI 卡验收：截图来自浏览器工具（或 Tester 报告），没有自建预览容器 / 反代 / 一次性截图脚本
-- [ ] 项目分支与 worktree 已存在且只建一次；`PROJECT_BRANCH` / `WORKTREE` / `BASE_SHA` 已记入项目卡片
+- [ ] 项目分支已建且只建一次；`PROJECT_BRANCH` / `BASE_SHA` 已记入项目卡片（任务 worktree / 任务分支由 Developer 按约定自建）
 - [ ] 项目已落在 `<workspace>/projects/<repo>`（`pwd -P` 确认）；新项目 / 克隆未落在 workspace 根、`projects` 根或 `$HOME` / `~/project` / `~/agents`
 - [ ] `todo_write` 只建表一次，之后仅在「新增任务 / 状态变化 / 任务结束」时更新
 - [ ] 已跑阶段 2：`env.md` 通过三项校验、容器按 label 复用（一 repo 一容器）、派发卡片写了容器名与执行命令
@@ -135,9 +138,10 @@
 
 - [ ] 12 字段卡片填满，无「待补充」；UI 卡是行为清单（路由 + 操作 → 看到什么），非 UI 卡是可判定条目（命令 + 退出码），两种形态不混用
 - [ ] 已过派发前自检：没有要求「每条 AC 一条脚本」、没有点名验证手段、没有要求把截图/断言脚本写进仓库；要 L2 已写理由
-- [ ] 项目路径与 worktree 真实存在，所有任务都在这条项目分支上；约束写明只读目录、禁止 push、禁止新建分支/worktree、禁止改动的模块
+- [ ] 项目路径与项目分支真实存在；任务 worktree / PR 由 Developer 自建，卡片写死了路径、命名与 base 约定
+- [ ] 交付前不重复执行子 agent 已跑过的门禁命令（抽查单条除外）
 - [ ] 第 8 项写了角色 Skill（Developer：`dev-role-developer` + `dev-test-strategy` + `dev-environment`；Tester：`dev-role-tester` + `dev-test-strategy` + `dev-environment`）并要求回报 `STACK=… REF=… DETECT=…`；未写或写「无 Skill」→ **不得派发**
-- [ ] 交付格式写明：项目分支 + 任务 commit + diff 范围 + 命令退出码 + 未覆盖项；preset 选对（编码 `dev-developer` / 验证 `dev-tester`）
+- [ ] 交付格式写明：项目分支 + 任务 commit + 任务 PR 链接（base=项目分支）+ 命令退出码 + 未覆盖项；preset 选对（编码 `dev-developer` / 验证 `dev-tester`）；授权边界写清（可 push 任务分支 / 可开任务 PR；禁止 push 项目分支与默认分支、禁止合并）
 
 交付前：
 
