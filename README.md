@@ -67,8 +67,12 @@ Skill 全部只读：没有 `templates/`、没有 seeds；资产脚本由 `asset
 | preset | 用途 | 工具面 |
 |--------|------|--------|
 | `dev-leader` | 主会话默认 preset / 调度者 | fs / bash / jobs / skill / todo / asset / subagent / subagent-control / list-agents |
-| `dev-developer` | 编码执行者（写操作必须显式指定） | fs / bash / jobs / skill / todo / asset + Developer persona |
+| `dev-developer` | 编码执行者（写操作必须显式指定） | fs / bash / jobs / skill / todo / asset + Developer persona + **PTC 呈现** |
 | `dev-tester` | 验证执行者 / 子 agent 漏传兜底 | fs / bash / jobs / skill / todo / asset + Tester persona |
+
+`dev-developer` 使用 PTC（Programmatic Tool Calling）：模型只看到 `run_code` 和由可见工具生成的
+TS SDK，读写/构建/测试在程序内通过 `tools.<name>(...)` 组合；`dev-leader` 与 `dev-tester`
+保持 native 工具面。回退时把 `preset-dev-developer` 里的 `mode` 改成 `native` 即可。
 
 ## 快速开始
 
