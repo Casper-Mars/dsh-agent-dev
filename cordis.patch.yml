@@ -36,6 +36,11 @@
         plugins:
           - id: dev-assets-leader
             name: dsh-agent-dev/assets/leader
+          # 工具呈现方式（agent scope 级）：Leader 也用 PTC，派单/验收/浏览器取证在 run_code 内组合。
+          - id: tool-presentation
+            name: '@deepseek-ai/dsh-agent-tool-presentation'
+            config:
+              mode: ptc
           - id: echuan-tools
             name: dsh-echuan/tools/leader
           - id: task-tools
@@ -97,7 +102,7 @@
             name: dsh-agent-dev/assets/developer
           # 工具呈现方式（agent scope 级）：Developer 用 PTC，模型只看得到
           # run_code + 由可见工具生成的 TS SDK，读写/构建/测试在一次程序内组合。
-          # 回退只需把 mode 改成 native；Leader / Tester 保持 native。
+          # 回退只需把 mode 改成 native；Leader / Tester 也已用 PTC。
           - id: tool-presentation
             name: '@deepseek-ai/dsh-agent-tool-presentation'
             config:
@@ -183,6 +188,11 @@
         plugins:
           - id: dev-assets-tester
             name: dsh-agent-dev/assets/tester
+          # 工具呈现方式（agent scope 级）：Tester 也用 PTC，复现/验收/取证在 run_code 内组合。
+          - id: tool-presentation
+            name: '@deepseek-ai/dsh-agent-tool-presentation'
+            config:
+              mode: ptc
           - id: echuan-tools
             name: dsh-echuan/tools/readonly
           # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）

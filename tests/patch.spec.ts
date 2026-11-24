@@ -152,22 +152,15 @@ describe('子 agent preset', () => {
   })
 })
 
-describe('Developer PTC 呈现', () => {
-  it('dev-developer 挂 tool-presentation，模式为 ptc', () => {
-    const config = byId('preset-dev-developer').config as {
+describe('PTC 呈现', () => {
+  it.each(['preset-dev-leader', 'preset-dev-developer', 'preset-dev-tester'])('%s 挂 tool-presentation，模式为 ptc', (id) => {
+    const config = byId(id).config as {
       plugins: Array<{ id: string; name: string; config?: Record<string, unknown> }>
     }
     const row = config.plugins.find((plugin) => plugin.id === 'tool-presentation')
     expect(row).toBeDefined()
     expect(row?.name).toBe('@deepseek-ai/dsh-agent-tool-presentation')
     expect(row?.config).toEqual({ mode: 'ptc' })
-  })
-
-  it('dev-leader / dev-tester 保持 native，不挂 tool-presentation', () => {
-    for (const id of ['preset-dev-leader', 'preset-dev-tester']) {
-      const config = byId(id).config as { plugins: Array<{ id: string }> }
-      expect(config.plugins.some((plugin) => plugin.id === 'tool-presentation')).toBe(false)
-    }
   })
 })
 
