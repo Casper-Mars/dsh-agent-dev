@@ -84,9 +84,6 @@
           # 子 agent 后续控制面：send_message / interrupt_agent
           - id: tool-subagent-control
             name: '@deepseek-ai/dsh-tool-subagent-control'
-          # 子 agent 列表查询：list_agents（同包子路径导出）
-          - id: tool-subagent-list-agents
-            name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
 
     - id: preset-dev-developer
       name: '@deepseek-ai/dsh-agent-preset'

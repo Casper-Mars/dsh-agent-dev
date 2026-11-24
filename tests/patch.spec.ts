@@ -79,10 +79,10 @@ describe('领域插件条目', () => {
 })
 
 describe('主会话 preset（dev-leader）', () => {
-  it('挂载 subagent 控制面（control + list-agents），但不挂 persona', () => {
+  it('挂载 subagent 控制面（dsh 0.2.2 起 list_agents 由 control 主入口注册），但不挂 persona', () => {
     const names = presetPluginNames('preset-dev-leader')
     expect(names).toContain('@deepseek-ai/dsh-tool-subagent-control')
-    expect(names).toContain('@deepseek-ai/dsh-tool-subagent-control/list-agents')
+    expect(names).not.toContain('@deepseek-ai/dsh-tool-subagent-control/list-agents')
     expect(names).not.toContain('@deepseek-ai/dsh-persona')
   })
 
