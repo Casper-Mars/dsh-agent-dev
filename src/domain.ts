@@ -67,6 +67,5 @@ export const DEV_DOMAIN: DevDomain = {
     skill('dev-ui-verify', 'UI 黑盒验证流程（L0/L1）：起 dev server、切三档视口、截图、看图判断，判定是否升级 L2；不带脚本、不产生仓库内的验证装置。'),
     skill('dev-ui-review', '按风险抽样核对 UI 实现与设计契约：默认抽 3 点（主路径/极端态/移动断点），token、状态、对比度、可访问性；输出 file:line 偏差与 blocker/major/minor 分级。'),
     skill('dev-retro', '任务复盘规范：触发条件、失败模式分类、单变量改进提案格式（现象/证据/预期指标/回滚），禁止把一次性偏好当规则。'),
-    skill('asset-first', '资产优先：先查再写、第二次就资产化、没有就建 L3、卡结束必须 settle；适用于取证/验证/环境/操作等重复劳动。'),
   ],
 }

@@ -45,15 +45,6 @@
             name: dsh-echuan/tools/leader
           - id: task-tools
             name: dsh-agent-base/tools/task-readonly
-          # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
-          - id: tool-asset
-            name: dsh-agent-dev/tools/asset
-            config:
-              libraryRoot: /opt/agent-assets
-              stateRoot: /workspace/.agent/assets
-              debtRoot: /workspace/.agent/assets/debt
-              maxRunsPerTask: 3
-              maxCreatesPerTask: 1
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-bash
@@ -109,15 +100,6 @@
               mode: ptc
           - id: echuan-tools
             name: dsh-echuan/tools/readonly
-          # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
-          - id: tool-asset
-            name: dsh-agent-dev/tools/asset
-            config:
-              libraryRoot: /opt/agent-assets
-              stateRoot: /workspace/.agent/assets
-              debtRoot: /workspace/.agent/assets/debt
-              maxRunsPerTask: 3
-              maxCreatesPerTask: 1
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
@@ -125,7 +107,6 @@
                 你是 Developer 子 agent。只做编码与自测，不拆解需求、不调度他人、不改验收标准；回复使用中文，结论先行。
 
                 单任务流程（不可跳步）：
-                0. 资产：开工先调用 asset 工具 search；同一动作第二次必须 create L3；交付回报带 ## 资产。
                 1. 对齐：复述目标与 AC1…ACn 原文；列出缺失的路径 / 接口 / 版本 / 环境信息，有歧义立刻停手问 Leader，不用默认值补齐。
                 2. 隔离：项目分支 `feature/<项目号>` 是只读引用；本卡的任务分支 `task/<任务号>` 与 worktree 由你自建：
                    worktree 路径按卡片第 5 项（缺省 <workspace>/projects/.worktrees/<repo>-<任务号>），
@@ -195,15 +176,6 @@
               mode: ptc
           - id: echuan-tools
             name: dsh-echuan/tools/readonly
-          # 资产飞轮：search / create / run / settle / audit（与 asset-first skill 同包）
-          - id: tool-asset
-            name: dsh-agent-dev/tools/asset
-            config:
-              libraryRoot: /opt/agent-assets
-              stateRoot: /workspace/.agent/assets
-              debtRoot: /workspace/.agent/assets/debt
-              maxRunsPerTask: 3
-              maxCreatesPerTask: 1
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
@@ -212,7 +184,6 @@
 
                 单任务验证流程（不可跳步）：
                 1. 对齐：抄下被验对象（项目分支 + 本任务 commit + 基线）与 AC1…ACn 原文，编号不变、不合并、不改写。
-                1.1 资产：验收前先调用 asset 工具 search；能复用就复用；新场景 create L3；报告写 used/created。
                 2. 拉取交付物：commit 形态用 git worktree add --detach /tmp/verify-<task>-<ts> <commit> 建临时 worktree。
                    workspace 形态先 rsync -a --exclude node_modules --exclude .git <worktree>/ /tmp/verify-<task>-<ts>/，只在副本内跑命令。
                    在交付 worktree 原地验收 = 验收无效；报告缺副本绝对路径或 diff 指纹 = 直接打回。

@@ -117,7 +117,6 @@ $ pnpm build → exit 0
 - 任一 AC 无证据或无法复现；`typecheck` / `test` / `build` 任一非 0 且未解释；
 - 引入任务范围外的改动（格式化全仓库、升级依赖、改无关模块）；
 - 子 agent 报告与 `git diff` 事实不符；
-- 报告缺 `## 资产` 段，或没有 `asset finalize` 的 `staging: settled`（Leader 必须在 triage 时检查）；
 - Tester 判 `blocker` / `major`；
 
 ### 7. 报告模板（Tester 交付、Leader 转述都用这个）
@@ -136,11 +135,6 @@ $ pnpm build → exit 0
 1. `pnpm typecheck` → exit 0
 2. `pnpm test` → exit 1（2 failed）
 3. `pnpm build` → 未执行（前置失败）
-## 资产
-- used: <id@version>（或「无」）
-- created: <staging path>（或「无」）
-- promoted: L2 <target> / L1 <bundle>（或「无」）
-- discarded / debt: <reason>（或「无」）
 **未覆盖项**
 - 未在 dsh 真实 profile 下验证 install 流程（无 DSH_HOME 权限）
 **残余缺陷**
@@ -191,9 +185,7 @@ $ pnpm build → exit 0
 - [ ] 至少一条独立断言，未完全复用被测方脚本
 - [ ] 每条 AC 有 PASS / FAIL 与证据，无「部分通过」
 - [ ] `typecheck` / `test` / `build` 三件套齐全，缺项已说明
-- [ ] Tester 完成报告含 `## 资产`（used / created）
 - [ ] 缺陷已按 blocker / major / minor 定级并给出处理结论
-- [ ] `## 资产` 段完整；staging 已 settle 或每条有结算记录
 
 ### 交付
 

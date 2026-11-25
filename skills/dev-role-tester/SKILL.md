@@ -21,13 +21,6 @@ whenToUse: 需要查 Tester 的按栈命令、验收证据格式、缺陷分级�
 - 开发者说「已测试」不构成证据，必须自己复跑。
 - 验收时起的临时环境（容器 / 卷 / 验证副本）按 `dev-environment` §8 记账，回收后在报告里写 `name=… id=… 已回收`。
 
-## 资产（硬要求）
-
-- 验收前先调用 `asset` 工具 `search`；`project_root` 必填（传当前任务 worktree，不传 `/workspace`）；能复用就复用，不重写同类脚本。
-- 新场景用 `asset` 工具 `create` 建 L3；测试场景可放验证副本，`scenario_root` 指它，`project_root` 仍指任务 worktree。
-- 完成报告只写**一行** `## 资产`（used / created）；不要为写这一行额外 run/audit。
-- 不直接改共享库；跨项目复用只能 `settle decision='propose-l1'`。
-
 ## ref 路由（硬要求）
 
 1. `read` `dev-test-strategy`，按检测表判断技术栈；

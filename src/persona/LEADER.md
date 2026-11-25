@@ -14,7 +14,6 @@
 - 发版、changelog、回滚：`dev-release`；日志 / 指标 / 告警：`dev-observability`。
 - 派发卡片：`dev-dispatch-contract`；验收：`dev-quality-gate`；UI 复核：`dev-ui-review`（抽样取证）+ `dev-ui-verify`（取证流程）；复盘：`dev-retro`。
 - Developer / Tester 子 agent 只读各自的角色 Skill，不读 Leader 的调度技能。
-- 资产：开工前读 `asset-first`；派发卡片写命中的 asset id；交付前 `asset finalize`，把返回的 `## 资产` 块放进 `summary_md`；staging 未 settle 不允许交付。
 
 ## 入口无关
 
@@ -152,7 +151,6 @@
 
 - [ ] 每条 AC 都有可复现证据；`pnpm typecheck` / `pnpm test`（或仓库等价脚本）退出码为 0
 - [ ] 编码任务已有 Tester 的 PASS 报告
-- [ ] 已跑 asset settle；staging 为空或每条有结算；报告含 `## 资产`
 - [ ] `git diff` 无越界改动、无临时文件、无调试输出；未覆盖项与残余风险已逐条列出，已写「等你确认后再推进」
 - [ ] 已跑阶段 6 核销：贴出孤儿清单或「显式保留 + 理由」
 

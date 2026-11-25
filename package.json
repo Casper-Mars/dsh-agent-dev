@@ -1,8 +1,8 @@
 {
   "name": "dsh-agent-dev",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "type": "module",
-  "description": "开发领域包（dsh）：原生单包提供 Leader 人设、16 个只读领域 Skill 与 3 个 agent preset",
+  "description": "开发领域包（dsh）：原生单包提供 Leader 人设、15 个只读领域 Skill 与 3 个 agent preset",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -38,11 +38,7 @@
       "default": "./dist-server/assets-tester.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
-    "./package.json": "./package.json",
-    "./tools/asset": {
-      "types": "./dist-server/types/tools/asset.d.ts",
-      "default": "./dist-server/tools/asset.js"
-    }
+    "./package.json": "./package.json"
   },
   "files": [
     "dist-server/**/*.js",
@@ -97,9 +93,7 @@
     "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
     "@types/node": "^22.13.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
-  },
-  "dependencies": {
+    "vitest": "^3.0.0",
     "yaml": "^2.9.1"
   }
 }

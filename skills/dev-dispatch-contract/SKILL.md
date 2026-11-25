@@ -70,7 +70,6 @@ whenToUse: 准备调用 subagent 派发任务之前，或收到子 agent 回报�
    - 派 Developer：`dev-role-developer` + `dev-test-strategy`
    - 派 Tester：`dev-role-tester` + `dev-test-strategy`
    - 关键词：Wiki 检索「Skill 写作规范 / 派发契约」
-   - 资产：`asset` 工具 `search` 命中的 id（无则写「无」）；新场景写预期复用次数
 9. 交付格式：项目分支 + 本任务 commit hash + **任务 PR 链接（base=项目分支）** + diff 范围 <基线>..<commit>；
    证据按 §2.1 分级由 Developer 选（默认 L0/L1；要求 L2 时在本项写理由）；未覆盖项与风险
 10. 交付形态与环境（≤2 行）：`delivery_mode: commit|workspace`；容器名；其余按 `dev-environment` 执行
@@ -255,7 +254,6 @@ subagent({
 - [ ] 第 3 项 ≤ 1 行，未复述目标 / 范围 / 依赖 / 不做清单；卡片未引用平台工具名
 - [ ] 卡片正文直接进 `subagent` 的 `prompt`，未先 `write` 成文件
 - [ ] 派发前自检：这条要求会不会逼子 agent 先造一个测量装置？会 → 改写卡片
-- [ ] 已先调用 `asset` 工具 `search`；命中的 id 已写进第 8 项，无则写「无」
 - [ ] 第 6 项是行为清单（路由 + 操作 → 看到什么）或可判定条目（命令 + 退出码），二选一不混用
 - [ ] 没有要求「每条 AC 一条脚本」、没有点名验证手段、没有要求把截图/断言脚本写进仓库
 - [ ] 项目路径与项目分支真实存在（`ls` / `git ls-remote` 过）；任务 worktree 由本卡自建，路径不预先要求存在

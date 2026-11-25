@@ -31,7 +31,7 @@ function writeFile(target: string, content: string): void {
   writeFileSync(target, content, 'utf8')
 }
 
-/** 完整夹具：16 个 SKILL.md + 5 个 references，模拟一份合格资产目录。 */
+/** 完整夹具：15 个 SKILL.md + 5 个 references，模拟一份合格资产目录。 */
 function makeFixture(): { root: string; skillsRoot: string } {
   const root = mkdtempSync(join(tmpdir(), 'verify-install-'))
   temporaryRoots.push(root)
@@ -56,16 +56,16 @@ afterEach(() => {
 })
 
 describe('期望常量', () => {
-  it('16 个 Skill + 5 个 references = 21 项', () => {
-    expect(EXPECTED_SKILLS).toHaveLength(16)
-    expect(new Set(EXPECTED_SKILLS).size).toBe(16)
+  it('15 个 Skill + 5 个 references = 20 项', () => {
+    expect(EXPECTED_SKILLS).toHaveLength(15)
+    expect(new Set(EXPECTED_SKILLS).size).toBe(15)
     expect(EXPECTED_REFERENCE_STACKS).toHaveLength(5)
-    expect(EXPECTED_CHECK_COUNT).toBe(21)
+    expect(EXPECTED_CHECK_COUNT).toBe(20)
   })
 })
 
 describe('verifyInstall（包内资产）', () => {
-  it('默认检查包内 skills/：未安装状态下 21 条全 PASS、退出码 0', () => {
+  it('默认检查包内 skills/：未安装状态下 20 条全 PASS、退出码 0', () => {
     const targets = resolveSkillsRoot({ repoRoot: REPO_ROOT })
     expect(targets.source).toBe('package')
     expect(targets.skillsRoot).toBe(join(REPO_ROOT, 'skills'))

@@ -21,12 +21,6 @@ whenToUse: 需要查 Developer 的按栈命令、自检维度、禁止项与交�
 - 卡片信息不足时停下来问 Leader，不用默认值补齐路径 / 接口 / 版本。
 - 自建私有环境（容器 / 卷）按 `dev-environment` §8 记账：node 单行追加一行，字段按该节 schema（`ts/repo/event/name/by/note` 必填），交付时报告 `name=… id=… 已回收|待回收`。
 
-## 资产（硬要求）
-
-- 开工先调用 `asset` 工具 `search`；`project_root` 必填（传当前任务 worktree，不传 `/workspace`）；命中且 `health=ok` 直接用 `run`，不重写同类脚本。
-- 同一动作第二次出现 → `asset` 工具 `create` 抽成 L3；交付前 `settle`。
-- 交付回报带 `## 资产`：used / created / promoted / discarded / debt。
-
 ## ref 路由（硬要求）
 
 1. `read` `dev-test-strategy`，按检测表判断技术栈；

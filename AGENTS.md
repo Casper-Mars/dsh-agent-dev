@@ -9,7 +9,7 @@
 - **原生单包**：不依赖任何外部 agent core 包；`dsh plugin add` 装本包即可。
 - **零工具**：本包不声明任何 tools 实现（无 `tools()`，也无 `toolNames` 字段）；文件 / 命令 / 技能 /
   待办 / 子 agent 能力全部由 `cordis.patch.yml` 的 preset 组合 dsh 内置插件提供。
-- **零状态**：不写盘、不建资产目录、没有 bootstrap；13 个 Skill 只从包内 `skills/` 读取并在运行时注册。
+- **零状态**：不写盘、不建资产目录、没有 bootstrap；15 个 Skill 只从包内 `skills/` 读取并在运行时注册。
 - **只读 Skill**：0.2.0 起没有进化能力，Skill 正文不会被运行时改写。
 - **人设唯一来源**：`src/persona/LEADER.md`（正文原文），由 `src/persona.ts` 读取后以 `LEADER_PERSONA` 导出，再由插件注入 **depth 0 根会话**；
   `preset-dev-leader` 不挂 persona。`dev-developer` / `dev-tester` 各用自己的 preset persona。

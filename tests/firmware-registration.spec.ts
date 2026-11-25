@@ -133,7 +133,7 @@ describe('parseFirmwareSkillMarkdown', () => {
 
 describe('buildFirmwareSkillRegistration', () => {
   it('全部领域 Skill 的注册参数全部合规', () => {
-    expect(DEV_DOMAIN.skills).toHaveLength(16)
+    expect(DEV_DOMAIN.skills).toHaveLength(15)
 
     for (const skill of DEV_DOMAIN.skills) {
       const registration = buildFirmwareSkillRegistration(skill)

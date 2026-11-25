@@ -14,7 +14,7 @@
 #      不满足会直接拒绝安装并打印 requirements（这是 manifest 层）；
 #   2. patch 组合：`dsh --profile <p> --dump-config` 能把 dev-domain 与 3 个 preset
 #      组进配置树（这是装配层，schema 变更会在这里炸）；
-#   3. 运行时装配：冷启动 profile，断言 16 个 Skill 与 3 个 preset 真的注册成功
+#   3. 运行时装配：冷启动 profile，断言 15 个 Skill 与 3 个 preset 真的注册成功
 #      （这是运行层，服务契约变更 / 模块解析失败会在这里暴露）。
 #
 # 退出码：全部目标通过为 0，任一目标失败为 1，用法错误为 2。
